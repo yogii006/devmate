@@ -1,0 +1,49 @@
+# ==== Core Framework ====
+langchain==0.3.10
+langchain-core==0.3.63
+langchain-openai==0.2.6
+langsmith==0.1.147
+langgraph==0.2.26
+
+# ==== LLM Providers ====
+openai==1.75.0
+tiktoken==0.8.0
+
+# ==== API / Server ====
+fastapi==0.110.0
+uvicorn==0.30.1
+python-dotenv==1.0.1
+
+# ==== Utilities ====
+pydantic==2.8.2
+requests==2.32.3
+rich==13.7.1
+
+# ==== Persistent Storage ====
+# sqlalchemy==2.0.32   # Remove if using MongoDB
+
+# ==== File Operations & Tools ====
+aiofiles==23.2.1
+python-multipart==0.0.6
+
+# ==== Supabase file storage ====
+supabase==2.4.1
+
+# ==== Security / Authentication ====
+passlib[bcrypt]==1.7.4
+bcrypt>=4.0.1
+python-jose[cryptography]==3.3.0
+
+# ==== Optional: MongoDB ====
+pymongo==4.9.1
+motor==3.7.1
+
+supabase
+python-docx
+python-pptx
+PyMuPDF
+pymysql
+PyPDF2
+openpyxl
+reportlab
+Pillow
