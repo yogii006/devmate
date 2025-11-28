@@ -11,10 +11,11 @@ from upload_helper import upload_to_supabase
 
 
 @tool
-def write_file(filename: str, content: str) -> str:
+def write_file(filename: str, content: str, username: str = None) -> str:
     """
     Create a file and upload to Supabase (if not exists already).
     Checks if filename already exists and prevents overwrite.
+    Saves file in a folder named after the username if provided.
     """
     try:
         from dotenv import load_dotenv
@@ -22,6 +23,10 @@ def write_file(filename: str, content: str) -> str:
 
         SUPABASE_URL = os.getenv("SUPABASE_URL", "https://mcytoihwcoitrqemqqwv.supabase.co")
         BUCKET_NAME = os.getenv("SUPABASE_BUCKET", "devmate")
+
+        # Prefix filename with username folder if provided
+        if username:
+            filename = f"{username}/{filename}"
 
         # Public object URL
         file_url = f"{SUPABASE_URL}/storage/v1/object/public/{BUCKET_NAME}/{filename}"
