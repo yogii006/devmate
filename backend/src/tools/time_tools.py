@@ -1,10 +1,11 @@
-from datetime import datetime
+import requests
 from langchain.tools import tool
 
 @tool
 def current_time_tool() -> str:
     """
-    Returns the current date and time in ISO format.
+    Returns accurate real world time using WorldTimeAPI.
     """
-    now = datetime.now()
-    return now.isoformat()
+    response = requests.get("https://worldtimeapi.org/api/timezone/Asia/Kolkata")
+    data = response.json()
+    return data["datetime"]

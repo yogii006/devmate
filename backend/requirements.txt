@@ -38,7 +38,6 @@ python-jose[cryptography]==3.3.0
 pymongo==4.9.1
 motor==3.7.1
 
-
 email-validator
 supabase
 python-docx
@@ -49,3 +48,13 @@ PyPDF2
 openpyxl
 reportlab
 Pillow
+pytz
+
+yfinance==0.2.54
+websockets==12.0
+
+langchain
+requests
+python-dotenv
+youtube-transcript-api
+ntplib

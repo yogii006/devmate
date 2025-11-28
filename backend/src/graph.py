@@ -1,5 +1,12 @@
 from src.tools.file_tools import write_file, read_file
 from src.tools.time_tools import current_time_tool
+from src.tools.web_tools import tavily_search_tool
+from src.tools.calculator_tools import calculator_tool
+from src.tools.currency_tools import currency_converter
+from src.tools.weather_tools import weather_tool
+from src.tools.youtube_tools import youtube_summary_tool
+# from src.tools.st_tools import youtube_summary_tool
+from src.tools.stock_tools import stock_price_tool
 from src.agents.study_agent import StudyAgent
 from langchain_openai import ChatOpenAI
 from langgraph.graph import StateGraph, MessagesState
@@ -73,7 +80,7 @@ class DevGraph:
             model=model_name,
             api_key=os.getenv("OPENAI_API_KEY")
         )
-        self.tools = [write_file, read_file, current_time_tool]
+        self.tools = [write_file, read_file, current_time_tool, tavily_search_tool, youtube_summary_tool,calculator_tool, currency_converter, weather_tool, stock_price_tool]
         # Bind tools to the LLM so it can emit tool calls
         try:
             self.llm_with_tools = self.llm.bind_tools(self.tools)
@@ -82,8 +89,12 @@ class DevGraph:
             self.llm_with_tools = self.llm
 
         self.tool_node = ToolNode(self.tools)
+        
+        # Build graph once during initialization (thread-safe, stateless)
+        self.compiled_graph = self._build()
 
-    def build(self):
+    def _build(self):
+        """Build the graph once - reused for all requests"""
         # pass the class, not an instance
         graph = StateGraph(persistent_memory_class)
 
@@ -110,15 +121,18 @@ class DevGraph:
         return graph.compile()
     
     def invoke(self, input_data):
-        """Wrapper around graph invoke to handle message format conversion"""
-        compiled_graph = self.build()
+        """Wrapper around graph invoke to handle message format conversion
         
+        Each invocation is independent - state comes from input_data parameter.
+        This makes it safe for concurrent users.
+        """
         # Convert incoming API messages to LangChain format
         if "messages" in input_data:
             input_data["messages"] = convert_api_messages_to_langchain(input_data["messages"])
         
-        # Invoke the graph
-        result = compiled_graph.invoke(input_data)
+        # Invoke the compiled graph (each call gets its own state)
+        # The graph is stateless - all data flows through input_data
+        result = self.compiled_graph.invoke(input_data)
         
         # Convert output messages back to API format
         if isinstance(result, dict) and "messages" in result:
@@ -127,5 +141,7 @@ class DevGraph:
         return result
 
 
+# Create single instance - safe for multiple concurrent users
+# because each invoke() call gets its own state from input_data
 dev_graph = DevGraph()
 sync_graph = dev_graph
