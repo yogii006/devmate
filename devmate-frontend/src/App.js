@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 
 // const API_ROOT = "https://devmate-lxbp.onrender.com";
-const API_ROOT = "http://127.0.0.1:8000";
+const API_ROOT = "https://devmate-lxbp.onrender.com";
 
 // Auth Component
 const AuthPage = ({ onLogin }) => {
