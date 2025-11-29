@@ -78,6 +78,66 @@ const AuthPage = ({ onLogin }) => {
 
   return (
     <div style={styles.authContainer}>
+      <svg viewBox="0 0 160 180" width="180" height="180" fill="none" xmlns="http://www.w3.org/2000/svg" style={{marginBottom: '20px'}}>
+        <defs>
+          <linearGradient id="mainGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#4F46E5"/>
+            <stop offset="100%" stopColor="#9333EA"/>
+          </linearGradient>
+          <linearGradient id="accentGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#F59E0B"/>
+            <stop offset="100%" stopColor="#FCD34D"/>
+          </linearGradient>
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="3" result="blur"/>
+            <feMerge>
+              <feMergeNode in="blur"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+        </defs>
+        <circle cx="80" cy="80" r="66" stroke="url(#mainGradient)" strokeWidth="1.8" opacity="1"/>
+        <circle cx="80" cy="80" r="42" stroke="url(#accentGradient)" strokeWidth="2.5" opacity="1">
+          <animate attributeName="r" values="42; 60; 42" dur="3.8s" repeatCount="indefinite" />
+          <animate attributeName="opacity" values="1; 0; 1" dur="3.8s" repeatCount="indefinite" />
+        </circle>
+        <circle cx="80" cy="80" r="9" fill="url(#accentGradient)" filter="url(#glow)">
+          <animate attributeName="r" values="9; 11; 9" dur="2s" repeatCount="indefinite"/>
+        </circle>
+        <g transform="translate(80,80) scale(1.1)">
+          <path d="M -28 -22 Q 0 -40 28 -22 L 28 22 Q 0 40 -28 22 Z" 
+                stroke="url(#mainGradient)" strokeWidth="5" fill="none" opacity="0.9"/>
+          <path d="M -18 20 L -6 -10 L 0 10 L 6 -10 L 18 20" 
+                stroke="url(#accentGradient)" strokeWidth="4" fill="none" opacity="0.9"/>
+        </g>
+        <g transform="translate(80,22) scale(0.85)">
+          <path d="M -7 -5 L -12 0 L -7 5 M 7 -5 L 12 0 L 7 5"
+                stroke="#4F46E5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <animate attributeName="stroke" values="#4F46E5;#6366F1;#4F46E5" dur="2.6s" repeatCount="indefinite"/>
+          </path>
+        </g>
+        <g transform="translate(138,80) scale(0.85)">
+          <path d="M -6 -8 H 6 V 8 H -6 M -6 -8 L -10 -6 V 6 H -6"
+                stroke="#F59E0B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <animate attributeName="stroke" values="#F59E0B;#FBBF24;#F59E0B" dur="2.4s" repeatCount="indefinite"/>
+          </path>
+        </g>
+        <g transform="translate(80,133) scale(0.85)">
+          <path d="M -8 -10 H 8 V 10 H -8 Z M -5 -6 H -1 M 1 -6 H 5 M -5 -2 H -1 M 1 -2 H 5 M -3 3 H 3"
+                stroke="#9333EA" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <animate attributeName="stroke" values="#9333EA;#A855F7;#9333EA" dur="2.2s" repeatCount="indefinite"/>
+          </path>
+        </g>
+        <g transform="translate(29,80) scale(0.85)">
+          <circle cx="0" cy="0" r="4" stroke="#10B981" strokeWidth="2" fill="none"/>
+          <path d="M 0 -8 V -12 M 0 8 V 12 M -8 0 H -12 M 8 0 H 12 M -6 -6 L -9 -9 M 6 -6 L 9 -9 M -6 6 L -9 9 M 6 6 L 9 9"
+                stroke="#10B981" strokeWidth="2" strokeLinecap="round">
+            <animate attributeName="stroke" values="#10B981;#34D399;#10B981" dur="3.2s" repeatCount="indefinite"/>
+          </path>
+        </g>
+        <path d="M80 32 L80 58 M110 80 L92 80 M80 122 L80 102 M50 80 L68 80"
+              stroke="#cbd5e1" strokeWidth="1.2" opacity="1"/>
+      </svg>
       <h1 style={styles.authTitle}>DevMate Auth</h1>
 
       <div style={styles.tabs}>
@@ -356,7 +416,69 @@ const ChatPage = ({ token, username, onLogout }) => {
       {/* Sidebar */}
       <div style={{...styles.sidebar, ...(sidebarOpen ? {} : styles.sidebarClosed)}}>
         <div style={styles.sidebarHeader}>
-          <h2 style={styles.sidebarTitle}>DevMate</h2>
+          <div style={styles.logoContainer}>
+            <svg viewBox="0 0 160 180" width="100" height="100" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="mainGradientSidebar" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#4F46E5"/>
+                  <stop offset="100%" stopColor="#9333EA"/>
+                </linearGradient>
+                <linearGradient id="accentGradientSidebar" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#F59E0B"/>
+                  <stop offset="100%" stopColor="#FCD34D"/>
+                </linearGradient>
+                <filter id="glowSidebar">
+                  <feGaussianBlur stdDeviation="3" result="blur"/>
+                  <feMerge>
+                    <feMergeNode in="blur"/>
+                    <feMergeNode in="SourceGraphic"/>
+                  </feMerge>
+                </filter>
+              </defs>
+              <circle cx="80" cy="80" r="66" stroke="url(#mainGradientSidebar)" strokeWidth="1.8" opacity="1"/>
+              <circle cx="80" cy="80" r="42" stroke="url(#accentGradientSidebar)" strokeWidth="2.5" opacity="1">
+                <animate attributeName="r" values="42; 60; 42" dur="3.8s" repeatCount="indefinite" />
+                <animate attributeName="opacity" values="1; 0; 1" dur="3.8s" repeatCount="indefinite" />
+              </circle>
+              <circle cx="80" cy="80" r="9" fill="url(#accentGradientSidebar)" filter="url(#glowSidebar)">
+                <animate attributeName="r" values="9; 11; 9" dur="2s" repeatCount="indefinite"/>
+              </circle>
+              <g transform="translate(80,80) scale(1.1)">
+                <path d="M -28 -22 Q 0 -40 28 -22 L 28 22 Q 0 40 -28 22 Z" 
+                      stroke="url(#mainGradientSidebar)" strokeWidth="5" fill="none" opacity="0.9"/>
+                <path d="M -18 20 L -6 -10 L 0 10 L 6 -10 L 18 20" 
+                      stroke="url(#accentGradientSidebar)" strokeWidth="4" fill="none" opacity="0.9"/>
+              </g>
+              <g transform="translate(80,22) scale(0.85)">
+                <path d="M -7 -5 L -12 0 L -7 5 M 7 -5 L 12 0 L 7 5"
+                      stroke="#4F46E5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <animate attributeName="stroke" values="#4F46E5;#6366F1;#4F46E5" dur="2.6s" repeatCount="indefinite"/>
+                </path>
+              </g>
+              <g transform="translate(138,80) scale(0.85)">
+                <path d="M -6 -8 H 6 V 8 H -6 M -6 -8 L -10 -6 V 6 H -6"
+                      stroke="#F59E0B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <animate attributeName="stroke" values="#F59E0B;#FBBF24;#F59E0B" dur="2.4s" repeatCount="indefinite"/>
+                </path>
+              </g>
+              <g transform="translate(80,133) scale(0.85)">
+                <path d="M -8 -10 H 8 V 10 H -8 Z M -5 -6 H -1 M 1 -6 H 5 M -5 -2 H -1 M 1 -2 H 5 M -3 3 H 3"
+                      stroke="#9333EA" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <animate attributeName="stroke" values="#9333EA;#A855F7;#9333EA" dur="2.2s" repeatCount="indefinite"/>
+                </path>
+              </g>
+              <g transform="translate(29,80) scale(0.85)">
+                <circle cx="0" cy="0" r="4" stroke="#10B981" strokeWidth="2" fill="none"/>
+                <path d="M 0 -8 V -12 M 0 8 V 12 M -8 0 H -12 M 8 0 H 12 M -6 -6 L -9 -9 M 6 -6 L 9 -9 M -6 6 L -9 9 M 6 6 L 9 9"
+                      stroke="#10B981" strokeWidth="2" strokeLinecap="round">
+                  <animate attributeName="stroke" values="#10B981;#34D399;#10B981" dur="3.2s" repeatCount="indefinite"/>
+                </path>
+              </g>
+              <path d="M80 32 L80 58 M110 80 L92 80 M80 122 L80 102 M50 80 L68 80"
+                    stroke="#cbd5e1" strokeWidth="1.2" opacity="1"/>
+            </svg>
+            <h2 style={styles.sidebarTitle}>DevMate</h2>
+          </div>
           <button onClick={() => setSidebarOpen(!sidebarOpen)} style={styles.toggleBtn}>
             {sidebarOpen ? '◀' : '▶'}
           </button>
@@ -430,6 +552,68 @@ const ChatPage = ({ token, username, onLogout }) => {
         </div>
 
         <div ref={chatRef} style={styles.chatContainer}>
+          <div style={styles.watermarkContainer}>
+            <svg viewBox="0 0 160 180" style={styles.watermarkSvg} fill="none" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="mainGradientWatermark" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#4F46E5"/>
+                  <stop offset="100%" stopColor="#9333EA"/>
+                </linearGradient>
+                <linearGradient id="accentGradientWatermark" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#F59E0B"/>
+                  <stop offset="100%" stopColor="#FCD34D"/>
+                </linearGradient>
+                <filter id="glowWatermark">
+                  <feGaussianBlur stdDeviation="3" result="blur"/>
+                  <feMerge>
+                    <feMergeNode in="blur"/>
+                    <feMergeNode in="SourceGraphic"/>
+                  </feMerge>
+                </filter>
+              </defs>
+              <circle cx="80" cy="80" r="66" stroke="url(#mainGradientWatermark)" strokeWidth="1.8" opacity="1"/>
+              <circle cx="80" cy="80" r="42" stroke="url(#accentGradientWatermark)" strokeWidth="2.5" opacity="1">
+                <animate attributeName="r" values="42; 60; 42" dur="3.8s" repeatCount="indefinite" />
+                <animate attributeName="opacity" values="1; 0; 1" dur="3.8s" repeatCount="indefinite" />
+              </circle>
+              <circle cx="80" cy="80" r="9" fill="url(#accentGradientWatermark)" filter="url(#glowWatermark)">
+                <animate attributeName="r" values="9; 11; 9" dur="2s" repeatCount="indefinite"/>
+              </circle>
+              <g transform="translate(80,80) scale(1.1)">
+                <path d="M -28 -22 Q 0 -40 28 -22 L 28 22 Q 0 40 -28 22 Z" 
+                      stroke="url(#mainGradientWatermark)" strokeWidth="5" fill="none" opacity="0.9"/>
+                <path d="M -18 20 L -6 -10 L 0 10 L 6 -10 L 18 20" 
+                      stroke="url(#accentGradientWatermark)" strokeWidth="4" fill="none" opacity="0.9"/>
+              </g>
+              <g transform="translate(80,22) scale(0.85)">
+                <path d="M -7 -5 L -12 0 L -7 5 M 7 -5 L 12 0 L 7 5"
+                      stroke="#4F46E5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <animate attributeName="stroke" values="#4F46E5;#6366F1;#4F46E5" dur="2.6s" repeatCount="indefinite"/>
+                </path>
+              </g>
+              <g transform="translate(138,80) scale(0.85)">
+                <path d="M -6 -8 H 6 V 8 H -6 M -6 -8 L -10 -6 V 6 H -6"
+                      stroke="#F59E0B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <animate attributeName="stroke" values="#F59E0B;#FBBF24;#F59E0B" dur="2.4s" repeatCount="indefinite"/>
+                </path>
+              </g>
+              <g transform="translate(80,133) scale(0.85)">
+                <path d="M -8 -10 H 8 V 10 H -8 Z M -5 -6 H -1 M 1 -6 H 5 M -5 -2 H -1 M 1 -2 H 5 M -3 3 H 3"
+                      stroke="#9333EA" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <animate attributeName="stroke" values="#9333EA;#A855F7;#9333EA" dur="2.2s" repeatCount="indefinite"/>
+                </path>
+              </g>
+              <g transform="translate(29,80) scale(0.85)">
+                <circle cx="0" cy="0" r="4" stroke="#10B981" strokeWidth="2" fill="none"/>
+                <path d="M 0 -8 V -12 M 0 8 V 12 M -8 0 H -12 M 8 0 H 12 M -6 -6 L -9 -9 M 6 -6 L 9 -9 M -6 6 L -9 9 M 6 6 L 9 9"
+                      stroke="#10B981" strokeWidth="2" strokeLinecap="round">
+                  <animate attributeName="stroke" values="#10B981;#34D399;#10B981" dur="3.2s" repeatCount="indefinite"/>
+                </path>
+              </g>
+              <path d="M80 32 L80 58 M110 80 L92 80 M80 122 L80 102 M50 80 L68 80"
+                    stroke="#cbd5e1" strokeWidth="1.2" opacity="1"/>
+            </svg>
+          </div>
           {messages.length === 0 ? (
             <div style={styles.emptyState}>
               <h2>Welcome to DevMate! 👋</h2>
@@ -538,6 +722,11 @@ const styles = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  logoContainer: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
   },
   sidebarTitle: {
     margin: 0,
@@ -672,11 +861,29 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     background: '#fff',
+    position: 'relative',
+  },
+  watermarkContainer: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
+    width: '500px',
+    height: '500px',
+    opacity: 0.2,
+    pointerEvents: 'none',
+    zIndex: 0,
+  },
+  watermarkSvg: {
+    width: '100%',
+    height: '100%',
   },
   emptyState: {
     textAlign: 'center',
     color: '#6b7280',
     marginTop: '100px',
+    position: 'relative',
+    zIndex: 1,
   },
   message: {
     padding: '12px 16px',
@@ -685,6 +892,8 @@ const styles = {
     maxWidth: '70%',
     lineHeight: '1.6',
     fontSize: '15px',
+    position: 'relative',
+    zIndex: 1,
   },
   userMessage: {
     background: '#0366d6',
