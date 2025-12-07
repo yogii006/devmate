@@ -6,7 +6,6 @@ import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import './App.css';
 
 const API_ROOT = "https://devmate-lxbp.onrender.com";
-// const API_ROOT = "http://127.0.0.1:8000";
 
 // Logo Component
 const Logo = ({ width = 100, height = 100, gradientId = "" }) => (
@@ -594,6 +593,37 @@ const ChatPage = ({ token, username, onLogout }) => {
     };
   };
 
+  const handleDeleteConversation = async (conversationId, e) => {
+    e.stopPropagation(); // Prevent triggering the conversation load
+    
+    if (!window.confirm('Are you sure you want to delete this conversation?')) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_ROOT}/conversations/${conversationId}`, {
+        method: "DELETE",
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+
+      if (res.ok) {
+        // If deleted conversation was the current one, clear it
+        if (currentConversationId === conversationId) {
+          setMessages([]);
+          setCurrentConversationId(null);
+        }
+        // Refresh conversations list
+        fetchConversations();
+      } else {
+        const data = await res.json();
+        alert(`Failed to delete conversation: ${data.detail || "Unknown error"}`);
+      }
+    } catch (err) {
+      console.error("Error deleting conversation:", err);
+      alert("Error deleting conversation. Please try again.");
+    }
+  };
+
   return (
     <div className="app-container">
       {/* Sidebar */}
@@ -630,13 +660,22 @@ const ChatPage = ({ token, username, onLogout }) => {
                       className={`conversation-card ${isActive ? 'active' : ''}`}
                       onClick={() => loadConversation(conv)}
                     >
-                      <div className="conversation-date">
-                        {new Date(conv.updated_at || conv.created_at).toLocaleDateString('en-US', { 
-                          month: 'short', 
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
+                      <div className="conversation-header-row">
+                        <div className="conversation-date">
+                          {new Date(conv.updated_at || conv.created_at).toLocaleDateString('en-US', { 
+                            month: 'short', 
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </div>
+                        <button
+                          className="delete-conversation-btn"
+                          onClick={(e) => handleDeleteConversation(conv._id, e)}
+                          title="Delete conversation"
+                        >
+                          🗑️
+                        </button>
                       </div>
                       <div className="conversation-content">
                         <div className="conversation-user">
@@ -769,4 +808,3 @@ export default function App() {
     </div>
   );
 }
-

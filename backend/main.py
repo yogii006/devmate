@@ -343,6 +343,27 @@ async def get_conversation(conversation_id: str, user=Depends(get_current_user))
         raise HTTPException(status_code=500, detail=str(e))
 
 # ---------------------------
+# Delete Conversation Endpoint
+# ---------------------------
+@app.delete("/conversations/{conversation_id}")
+async def delete_conversation(conversation_id: str, user=Depends(get_current_user)):
+    """Delete a specific conversation by ID."""
+    try:
+        result = await conversations_collection.delete_one({
+            "_id": ObjectId(conversation_id),
+            "user_id": user["_id"]
+        })
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Conversation not found")
+        
+        return {"message": "Conversation deleted successfully", "conversation_id": conversation_id}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ---------------------------
 # Get User's Uploaded Files
 # ---------------------------
 @app.get("/files")

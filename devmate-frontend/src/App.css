@@ -281,10 +281,15 @@ body {
   cursor: pointer;
   border: 1px solid transparent;
   transition: all 0.2s;
+  position: relative;
 }
 
 .conversation-card:hover {
   background: #40414f;
+}
+
+.conversation-card:hover .delete-conversation-btn {
+  opacity: 1;
 }
 
 .conversation-card.active {
@@ -292,10 +297,42 @@ body {
   border: 1px solid #565869;
 }
 
+.conversation-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
 .conversation-date {
   font-size: 11px;
   color: #8e8ea0;
-  margin-bottom: 6px;
+}
+
+.delete-conversation-btn {
+  background: transparent;
+  border: none;
+  color: #8e8ea0;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  opacity: 0;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.delete-conversation-btn:hover {
+  background: #e53e3e;
+  color: #fff;
+  opacity: 1 !important;
+}
+
+.delete-conversation-btn:active {
+  transform: scale(0.95);
 }
 
 .conversation-content {
