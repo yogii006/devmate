@@ -1,9 +1,260 @@
+
 import React, { useState, useEffect, useRef } from 'react';
+import ReactMarkdown from 'react-markdown';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import './App.css';
 
-// const API_ROOT = "https://devmate-lxbp.onrender.com";
 const API_ROOT = "https://devmate-lxbp.onrender.com";
+// const API_ROOT = "http://127.0.0.1:8000";
 
-// Auth Component
+// Logo Component
+const Logo = ({ width = 100, height = 100, gradientId = "" }) => (
+  <svg viewBox="0 0 160 180" width={width} height={height} fill="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id={`mainGradient${gradientId}`} x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#4F46E5"/>
+        <stop offset="100%" stopColor="#9333EA"/>
+      </linearGradient>
+      <linearGradient id={`accentGradient${gradientId}`} x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#F59E0B"/>
+        <stop offset="100%" stopColor="#FCD34D"/>
+      </linearGradient>
+      <filter id={`glow${gradientId}`}>
+        <feGaussianBlur stdDeviation="3" result="blur"/>
+        <feMerge>
+          <feMergeNode in="blur"/>
+          <feMergeNode in="SourceGraphic"/>
+        </feMerge>
+      </filter>
+    </defs>
+    <circle cx="80" cy="80" r="66" stroke={`url(#mainGradient${gradientId})`} strokeWidth="1.8" opacity="1"/>
+    <circle cx="80" cy="80" r="42" stroke={`url(#accentGradient${gradientId})`} strokeWidth="2.5" opacity="1">
+      <animate attributeName="r" values="42; 60; 42" dur="3.8s" repeatCount="indefinite" />
+      <animate attributeName="opacity" values="1; 0; 1" dur="3.8s" repeatCount="indefinite" />
+    </circle>
+    <circle cx="80" cy="80" r="9" fill={`url(#accentGradient${gradientId})`} filter={`url(#glow${gradientId})`}>
+      <animate attributeName="r" values="9; 11; 9" dur="2s" repeatCount="indefinite"/>
+    </circle>
+    <g transform="translate(80,80) scale(1.1)">
+      <path d="M -28 -22 Q 0 -40 28 -22 L 28 22 Q 0 40 -28 22 Z" 
+            stroke={`url(#mainGradient${gradientId})`} strokeWidth="5" fill="none" opacity="0.9"/>
+      <path d="M -18 20 L -6 -10 L 0 10 L 6 -10 L 18 20" 
+            stroke={`url(#accentGradient${gradientId})`} strokeWidth="4" fill="none" opacity="0.9"/>
+    </g>
+    <g transform="translate(80,22) scale(0.85)">
+      <path d="M -7 -5 L -12 0 L -7 5 M 7 -5 L 12 0 L 7 5"
+            stroke="#4F46E5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <animate attributeName="stroke" values="#4F46E5;#6366F1;#4F46E5" dur="2.6s" repeatCount="indefinite"/>
+      </path>
+    </g>
+    <g transform="translate(138,80) scale(0.85)">
+      <path d="M -6 -8 H 6 V 8 H -6 M -6 -8 L -10 -6 V 6 H -6"
+            stroke="#F59E0B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <animate attributeName="stroke" values="#F59E0B;#FBBF24;#F59E0B" dur="2.4s" repeatCount="indefinite"/>
+      </path>
+    </g>
+    <g transform="translate(80,133) scale(0.85)">
+      <path d="M -8 -10 H 8 V 10 H -8 Z M -5 -6 H -1 M 1 -6 H 5 M -5 -2 H -1 M 1 -2 H 5 M -3 3 H 3"
+            stroke="#9333EA" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <animate attributeName="stroke" values="#9333EA;#A855F7;#9333EA" dur="2.2s" repeatCount="indefinite"/>
+      </path>
+    </g>
+    <g transform="translate(29,80) scale(0.85)">
+      <circle cx="0" cy="0" r="4" stroke="#10B981" strokeWidth="2" fill="none"/>
+      <path d="M 0 -8 V -12 M 0 8 V 12 M -8 0 H -12 M 8 0 H 12 M -6 -6 L -9 -9 M 6 -6 L 9 -9 M -6 6 L -9 9 M 6 6 L 9 9"
+            stroke="#10B981" strokeWidth="2" strokeLinecap="round">
+        <animate attributeName="stroke" values="#10B981;#34D399;#10B981" dur="3.2s" repeatCount="indefinite"/>
+      </path>
+    </g>
+    <path d="M80 32 L80 58 M110 80 L92 80 M80 122 L80 102 M50 80 L68 80"
+          stroke="#cbd5e1" strokeWidth="1.2" opacity="1"/>
+  </svg>
+);
+
+// Code Block Component with Copy Button and Syntax Highlighting
+const CodeBlock = ({ children, ...props }) => {
+  const [copied, setCopied] = useState(false);
+
+  // Extract code content and language
+  const codeElement = React.Children.toArray(children).find(
+    child => React.isValidElement(child) && child.type === 'code'
+  );
+  
+  const className = codeElement?.props?.className || '';
+  const match = /language-(\w+)/.exec(className || '');
+  const language = match ? match[1] : '';
+  
+  // Extract code content
+  let codeContent = '';
+  if (codeElement) {
+    const children = codeElement.props.children;
+    codeContent = typeof children === 'string' 
+      ? children 
+      : React.Children.toArray(children).join('');
+  }
+
+  const handleCopy = async () => {
+    if (!codeContent) return;
+
+    try {
+      await navigator.clipboard.writeText(codeContent);
+      setCopied(true);
+      setTimeout(() => {
+        setCopied(false);
+      }, 5000);
+    } catch (err) {
+      console.error('Failed to copy code:', err);
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = codeContent;
+      textArea.style.position = 'fixed';
+      textArea.style.opacity = '0';
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        setCopied(true);
+        setTimeout(() => {
+          setCopied(false);
+        }, 5000);
+      } catch (fallbackErr) {
+        console.error('Fallback copy failed:', fallbackErr);
+      }
+      document.body.removeChild(textArea);
+    }
+  };
+
+  return (
+    <div className="code-block-wrapper">
+      <div className="code-block-header">
+        {language && <span className="code-language">{language}</span>}
+        <button onClick={handleCopy} className="copy-code-btn" title="Copy code">
+          {copied ? '✓ Copied' : 'Copy'}
+        </button>
+      </div>
+      {language ? (
+        <SyntaxHighlighter
+          language={language}
+          style={oneLight}
+          customStyle={{
+            margin: 0,
+            borderRadius: 0,
+            padding: '12px 16px',
+            background: '#ffffff',
+            fontSize: '14px',
+            lineHeight: '1.5',
+            color: '#383a42'
+          }}
+          PreTag="div"
+          codeTagProps={{
+            style: {
+              color: '#383a42',
+              fontFamily: "'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', monospace"
+            }
+          }}
+        >
+          {codeContent}
+        </SyntaxHighlighter>
+      ) : (
+        <pre {...props} style={{ margin: 0, borderRadius: 0, padding: '12px 16px', background: '#ffffff', color: '#000000' }}>
+          {children}
+        </pre>
+      )}
+    </div>
+  );
+};
+
+// Message Component
+const Message = ({ text, sender }) => {
+  const [downloading, setDownloading] = useState(false);
+
+  const linkMatch = text.match(/(https?:\/\/[^\s)]+\.supabase\.co[^\s)]+)/i);
+  
+  if (linkMatch) {
+    const url = linkMatch[1];
+    const filename = url.split("/").pop().split("?")[0];
+    let cleanText = text.replace(/\[Download[^\]]*\]\([^)]+\)/g, '').replace(url, '').trim();
+
+    const handleDownload = async () => {
+      setDownloading(true);
+      try {
+        const r = await fetch(url);
+        if (!r.ok) throw new Error("Download failed");
+        const blob = await r.blob();
+        const fileUrl = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = fileUrl;
+        link.download = filename;
+        link.click();
+        URL.revokeObjectURL(fileUrl);
+      } catch (err) {
+        console.error(err);
+        alert("Error downloading file");
+      }
+      setDownloading(false);
+    };
+
+    return (
+      <div className={`message ${sender === 'user' ? 'user-message' : 'ai-message'}`}>
+        <div className="message-text">
+          {sender === 'ai' ? (
+            <ReactMarkdown
+              components={{
+                pre: ({ children, ...props }) => {
+                  // Check if this is a code block (has code child with className)
+                  const codeChild = React.Children.toArray(children).find(
+                    child => React.isValidElement(child) && child.type === 'code'
+                  );
+                  if (codeChild && codeChild.props.className) {
+                    return <CodeBlock {...props}>{children}</CodeBlock>;
+                  }
+                  return <pre {...props}>{children}</pre>;
+                }
+              }}
+            >
+              {cleanText}
+            </ReactMarkdown>
+          ) : (
+            cleanText
+          )}
+        </div>
+        <button onClick={handleDownload} disabled={downloading} className="download-btn">
+          {downloading ? 'Downloading...' : `📥 Download ${filename}`}
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`message ${sender === 'user' ? 'user-message' : 'ai-message'}`}>
+      <div className="message-text">
+        {sender === 'ai' ? (
+          <ReactMarkdown
+            components={{
+              pre: ({ children, ...props }) => {
+                // Check if this is a code block (has code child with className)
+                const codeChild = React.Children.toArray(children).find(
+                  child => React.isValidElement(child) && child.type === 'code'
+                );
+                if (codeChild && codeChild.props.className) {
+                  return <CodeBlock {...props}>{children}</CodeBlock>;
+                }
+                return <pre {...props}>{children}</pre>;
+              }
+            }}
+          >
+            {text}
+          </ReactMarkdown>
+        ) : (
+          text
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Auth Page Component
 const AuthPage = ({ onLogin }) => {
   const [mode, setMode] = useState('login');
   const [loginEmail, setLoginEmail] = useState('');
@@ -77,93 +328,28 @@ const AuthPage = ({ onLogin }) => {
   };
 
   return (
-    <div style={styles.authContainer}>
-      <svg viewBox="0 0 160 180" width="180" height="180" fill="none" xmlns="http://www.w3.org/2000/svg" style={{marginBottom: '20px'}}>
-        <defs>
-          <linearGradient id="mainGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#4F46E5"/>
-            <stop offset="100%" stopColor="#9333EA"/>
-          </linearGradient>
-          <linearGradient id="accentGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#F59E0B"/>
-            <stop offset="100%" stopColor="#FCD34D"/>
-          </linearGradient>
-          <filter id="glow">
-            <feGaussianBlur stdDeviation="3" result="blur"/>
-            <feMerge>
-              <feMergeNode in="blur"/>
-              <feMergeNode in="SourceGraphic"/>
-            </feMerge>
-          </filter>
-        </defs>
-        <circle cx="80" cy="80" r="66" stroke="url(#mainGradient)" strokeWidth="1.8" opacity="1"/>
-        <circle cx="80" cy="80" r="42" stroke="url(#accentGradient)" strokeWidth="2.5" opacity="1">
-          <animate attributeName="r" values="42; 60; 42" dur="3.8s" repeatCount="indefinite" />
-          <animate attributeName="opacity" values="1; 0; 1" dur="3.8s" repeatCount="indefinite" />
-        </circle>
-        <circle cx="80" cy="80" r="9" fill="url(#accentGradient)" filter="url(#glow)">
-          <animate attributeName="r" values="9; 11; 9" dur="2s" repeatCount="indefinite"/>
-        </circle>
-        <g transform="translate(80,80) scale(1.1)">
-          <path d="M -28 -22 Q 0 -40 28 -22 L 28 22 Q 0 40 -28 22 Z" 
-                stroke="url(#mainGradient)" strokeWidth="5" fill="none" opacity="0.9"/>
-          <path d="M -18 20 L -6 -10 L 0 10 L 6 -10 L 18 20" 
-                stroke="url(#accentGradient)" strokeWidth="4" fill="none" opacity="0.9"/>
-        </g>
-        <g transform="translate(80,22) scale(0.85)">
-          <path d="M -7 -5 L -12 0 L -7 5 M 7 -5 L 12 0 L 7 5"
-                stroke="#4F46E5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <animate attributeName="stroke" values="#4F46E5;#6366F1;#4F46E5" dur="2.6s" repeatCount="indefinite"/>
-          </path>
-        </g>
-        <g transform="translate(138,80) scale(0.85)">
-          <path d="M -6 -8 H 6 V 8 H -6 M -6 -8 L -10 -6 V 6 H -6"
-                stroke="#F59E0B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <animate attributeName="stroke" values="#F59E0B;#FBBF24;#F59E0B" dur="2.4s" repeatCount="indefinite"/>
-          </path>
-        </g>
-        <g transform="translate(80,133) scale(0.85)">
-          <path d="M -8 -10 H 8 V 10 H -8 Z M -5 -6 H -1 M 1 -6 H 5 M -5 -2 H -1 M 1 -2 H 5 M -3 3 H 3"
-                stroke="#9333EA" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <animate attributeName="stroke" values="#9333EA;#A855F7;#9333EA" dur="2.2s" repeatCount="indefinite"/>
-          </path>
-        </g>
-        <g transform="translate(29,80) scale(0.85)">
-          <circle cx="0" cy="0" r="4" stroke="#10B981" strokeWidth="2" fill="none"/>
-          <path d="M 0 -8 V -12 M 0 8 V 12 M -8 0 H -12 M 8 0 H 12 M -6 -6 L -9 -9 M 6 -6 L 9 -9 M -6 6 L -9 9 M 6 6 L 9 9"
-                stroke="#10B981" strokeWidth="2" strokeLinecap="round">
-            <animate attributeName="stroke" values="#10B981;#34D399;#10B981" dur="3.2s" repeatCount="indefinite"/>
-          </path>
-        </g>
-        <path d="M80 32 L80 58 M110 80 L92 80 M80 122 L80 102 M50 80 L68 80"
-              stroke="#cbd5e1" strokeWidth="1.2" opacity="1"/>
-      </svg>
-      <h1 style={styles.authTitle}>DevMate Auth</h1>
+    <div className="auth-container">
+      <Logo width={180} height={180} gradientId="Auth" />
+      <h1 className="auth-title">DevMate Auth</h1>
 
-      <div style={styles.tabs}>
-        <button
-          style={{ ...styles.tabButton, ...(mode === 'login' ? styles.tabButtonActive : {}) }}
-          onClick={() => setMode('login')}
-        >
+      <div className="auth-tabs">
+        <button className={`tab-button ${mode === 'login' ? 'active' : ''}`} onClick={() => setMode('login')}>
           Login
         </button>
-        <button
-          style={{ ...styles.tabButton, ...(mode === 'signup' ? styles.tabButtonActive : {}) }}
-          onClick={() => setMode('signup')}
-        >
+        <button className={`tab-button ${mode === 'signup' ? 'active' : ''}`} onClick={() => setMode('signup')}>
           Signup
         </button>
       </div>
 
       {mode === 'login' ? (
-        <div style={styles.form}>
+        <div className="auth-form">
           <input
             type="email"
             placeholder="Email"
             value={loginEmail}
             onChange={(e) => setLoginEmail(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleLogin(e)}
-            style={styles.input}
+            className="auth-input"
             required
           />
           <input
@@ -172,21 +358,21 @@ const AuthPage = ({ onLogin }) => {
             value={loginPassword}
             onChange={(e) => setLoginPassword(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleLogin(e)}
-            style={styles.input}
+            className="auth-input"
             required
           />
-          <button onClick={handleLogin} style={styles.btn}>Login</button>
-          {loginInfo && <p style={{ ...styles.info, color: 'red' }}>{loginInfo}</p>}
+          <button onClick={handleLogin} className="auth-btn">Login</button>
+          {loginInfo && <p className="auth-info error">{loginInfo}</p>}
         </div>
       ) : (
-        <div style={styles.form}>
+        <div className="auth-form">
           <input
             type="text"
             placeholder="Username"
             value={signupUsername}
             onChange={(e) => setSignupUsername(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSignup(e)}
-            style={styles.input}
+            className="auth-input"
             required
           />
           <input
@@ -195,7 +381,7 @@ const AuthPage = ({ onLogin }) => {
             value={signupEmail}
             onChange={(e) => setSignupEmail(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSignup(e)}
-            style={styles.input}
+            className="auth-input"
             required
           />
           <input
@@ -204,24 +390,24 @@ const AuthPage = ({ onLogin }) => {
             value={signupPassword}
             onChange={(e) => setSignupPassword(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSignup(e)}
-            style={styles.input}
+            className="auth-input"
             required
           />
-          <button onClick={handleSignup} style={styles.btn}>Signup</button>
+          <button onClick={handleSignup} className="auth-btn">Signup</button>
           {signupInfo && (
-            <p style={{ ...styles.info, color: signupInfo.includes('successful') ? 'green' : 'red' }}>
+            <p className={`auth-info ${signupInfo.includes('successful') ? 'success' : 'error'}`}>
               {signupInfo}
             </p>
           )}
         </div>
       )}
 
-      <p style={styles.note}>Your session token will be securely saved in your browser.</p>
+      <p className="auth-note">Your session token will be securely saved in your browser.</p>
     </div>
   );
 };
 
-// Chat Component
+// Chat Page Component
 const ChatPage = ({ token, username, onLogout }) => {
   const [messages, setMessages] = useState([]);
   const [userInput, setUserInput] = useState('');
@@ -230,6 +416,10 @@ const ChatPage = ({ token, username, onLogout }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [loading, setLoading] = useState(false);
   const chatRef = useRef(null);
+
+  // NEW: textarea ref + max rows
+  const textareaRef = useRef(null);
+  const MAX_ROWS = 10;
 
   useEffect(() => {
     if (chatRef.current) {
@@ -240,9 +430,7 @@ const ChatPage = ({ token, username, onLogout }) => {
   const fetchConversations = async () => {
     try {
       const res = await fetch(`${API_ROOT}/conversations`, {
-        headers: {
-          "Authorization": `Bearer ${token}`
-        }
+        headers: { "Authorization": `Bearer ${token}` }
       });
       if (res.ok) {
         const data = await res.json();
@@ -258,67 +446,72 @@ const ChatPage = ({ token, username, onLogout }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const formatMessage = (text) => {
-    text = text.replace(/(\d+)\.\s+(\*\*[^*]+\*\*:?)/g, '\n$1. $2');
-    text = text.replace(/(\d+\.\s+[^\n]+)/g, '\n$1');
-    text = text.replace(/\*\*([^*]+)\*\*/g, '$1');
-    text = text.replace(/\n{3,}/g, '\n\n');
-    return text.trim();
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const uploadNotice = {
+      role: "assistant",
+      content: `⏳ Uploading **${file.name}**...`
+    };
+    setMessages(prev => [...prev, uploadNotice]);
+
+    try {
+      const res = await fetch(`${API_ROOT}/upload`, {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${token}` },
+        body: formData
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        const successMsg = {
+          role: "assistant",
+          content: data.message || `📄 File **${file.name}** uploaded successfully.\nYou can now ask me anything from this file.`
+        };
+        setMessages(prev => [...prev.slice(0, -1), successMsg]);
+      } else {
+        const failMsg = {
+          role: "assistant",
+          content: `❌ Upload failed: ${data.detail || "Unknown error"}`
+        };
+        setMessages(prev => [...prev.slice(0, -1), failMsg]);
+      }
+    } catch (err) {
+      console.error(err);
+      const errMsg = {
+        role: "assistant",
+        content: "❌ Error uploading file."
+      };
+      setMessages(prev => [...prev.slice(0, -1), errMsg]);
+    }
   };
 
-  const Message = ({ text, sender }) => {
-    const linkMatch = text.match(/(https?:\/\/[^\s)]+\.supabase\.co[^\s)]+)/i);
-    const [downloading, setDownloading] = useState(false);
+  // NEW: handle textarea change (auto-grow)
+  const handleInputChange = (e) => {
+    const value = e.target.value;
+    setUserInput(value);
 
-    if (linkMatch) {
-      const url = linkMatch[1];
-      const filename = url.split("/").pop().split("?")[0];
-      let cleanText = text.replace(/\[Download[^\]]*\]\([^)]+\)/g, '').replace(url, '').trim();
+    const textarea = textareaRef.current;
+    if (!textarea) return;
 
-      if (sender === 'ai') {
-        cleanText = formatMessage(cleanText);
-      }
+    textarea.style.height = 'auto';
+    const lineHeight = 24; // approx line height in px
+    const maxHeight = MAX_ROWS * lineHeight;
+    const newHeight = Math.min(textarea.scrollHeight, maxHeight);
+    textarea.style.height = `${newHeight}px`;
+  };
 
-      const handleDownload = async () => {
-        setDownloading(true);
-        try {
-          const r = await fetch(url);
-          if (!r.ok) throw new Error("Download failed");
-          const blob = await r.blob();
-          const fileUrl = URL.createObjectURL(blob);
-          const link = document.createElement("a");
-          link.href = fileUrl;
-          link.download = filename;
-          link.click();
-          URL.revokeObjectURL(fileUrl);
-        } catch (err) {
-          console.error(err);
-          alert("Error downloading file");
-        }
-        setDownloading(false);
-      };
-
-      return (
-        <div style={{ ...styles.message, ...(sender === 'user' ? styles.userMessage : styles.aiMessage) }}>
-          <div style={{ whiteSpace: 'pre-wrap' }}>{cleanText}</div>
-          <button
-            onClick={handleDownload}
-            disabled={downloading}
-            style={styles.downloadBtn}
-          >
-            {downloading ? 'Downloading...' : `📥 Download ${filename}`}
-          </button>
-        </div>
-      );
+  // NEW: Enter sends, Shift+Enter = newline
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
     }
-
-    const formattedText = sender === 'ai' ? formatMessage(text) : text;
-
-    return (
-      <div style={{ ...styles.message, ...(sender === 'user' ? styles.userMessage : styles.aiMessage) }}>
-        <div style={{ whiteSpace: 'pre-wrap' }}>{formattedText}</div>
-      </div>
-    );
   };
 
   const sendMessage = async () => {
@@ -329,14 +522,16 @@ const ChatPage = ({ token, username, onLogout }) => {
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
     setUserInput('');
+
+    // reset textarea height
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
+
     setLoading(true);
 
     try {
-      const payload = {
-        messages: newMessages
-      };
-      
-      // If we have a current conversation, include its ID
+      const payload = { messages: newMessages };
       if (currentConversationId) {
         payload.conversation_id = currentConversationId;
       }
@@ -353,15 +548,10 @@ const ChatPage = ({ token, username, onLogout }) => {
       const data = await res.json();
       
       if (res.ok) {
-        // Update messages with the full response from backend
         setMessages(data.messages || []);
-        
-        // Set the conversation ID if it's a new conversation
         if (data.conversation_id && !currentConversationId) {
           setCurrentConversationId(data.conversation_id);
         }
-        
-        // Refresh conversation history
         fetchConversations();
       } else {
         const errorMsg = typeof data.detail === 'string' 
@@ -391,13 +581,6 @@ const ChatPage = ({ token, username, onLogout }) => {
     setCurrentConversationId(null);
   };
 
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      sendMessage();
-    }
-  };
-
   const getConversationPreview = (conv) => {
     const msgs = conv.messages || [];
     if (msgs.length === 0) return { userMsg: 'Empty conversation', aiMsg: '' };
@@ -412,88 +595,29 @@ const ChatPage = ({ token, username, onLogout }) => {
   };
 
   return (
-    <div style={styles.appContainer}>
+    <div className="app-container">
       {/* Sidebar */}
-      <div style={{...styles.sidebar, ...(sidebarOpen ? {} : styles.sidebarClosed)}}>
-        <div style={styles.sidebarHeader}>
-          <div style={styles.logoContainer}>
-            <svg viewBox="0 0 160 180" width="100" height="100" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <linearGradient id="mainGradientSidebar" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#4F46E5"/>
-                  <stop offset="100%" stopColor="#9333EA"/>
-                </linearGradient>
-                <linearGradient id="accentGradientSidebar" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#F59E0B"/>
-                  <stop offset="100%" stopColor="#FCD34D"/>
-                </linearGradient>
-                <filter id="glowSidebar">
-                  <feGaussianBlur stdDeviation="3" result="blur"/>
-                  <feMerge>
-                    <feMergeNode in="blur"/>
-                    <feMergeNode in="SourceGraphic"/>
-                  </feMerge>
-                </filter>
-              </defs>
-              <circle cx="80" cy="80" r="66" stroke="url(#mainGradientSidebar)" strokeWidth="1.8" opacity="1"/>
-              <circle cx="80" cy="80" r="42" stroke="url(#accentGradientSidebar)" strokeWidth="2.5" opacity="1">
-                <animate attributeName="r" values="42; 60; 42" dur="3.8s" repeatCount="indefinite" />
-                <animate attributeName="opacity" values="1; 0; 1" dur="3.8s" repeatCount="indefinite" />
-              </circle>
-              <circle cx="80" cy="80" r="9" fill="url(#accentGradientSidebar)" filter="url(#glowSidebar)">
-                <animate attributeName="r" values="9; 11; 9" dur="2s" repeatCount="indefinite"/>
-              </circle>
-              <g transform="translate(80,80) scale(1.1)">
-                <path d="M -28 -22 Q 0 -40 28 -22 L 28 22 Q 0 40 -28 22 Z" 
-                      stroke="url(#mainGradientSidebar)" strokeWidth="5" fill="none" opacity="0.9"/>
-                <path d="M -18 20 L -6 -10 L 0 10 L 6 -10 L 18 20" 
-                      stroke="url(#accentGradientSidebar)" strokeWidth="4" fill="none" opacity="0.9"/>
-              </g>
-              <g transform="translate(80,22) scale(0.85)">
-                <path d="M -7 -5 L -12 0 L -7 5 M 7 -5 L 12 0 L 7 5"
-                      stroke="#4F46E5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <animate attributeName="stroke" values="#4F46E5;#6366F1;#4F46E5" dur="2.6s" repeatCount="indefinite"/>
-                </path>
-              </g>
-              <g transform="translate(138,80) scale(0.85)">
-                <path d="M -6 -8 H 6 V 8 H -6 M -6 -8 L -10 -6 V 6 H -6"
-                      stroke="#F59E0B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <animate attributeName="stroke" values="#F59E0B;#FBBF24;#F59E0B" dur="2.4s" repeatCount="indefinite"/>
-                </path>
-              </g>
-              <g transform="translate(80,133) scale(0.85)">
-                <path d="M -8 -10 H 8 V 10 H -8 Z M -5 -6 H -1 M 1 -6 H 5 M -5 -2 H -1 M 1 -2 H 5 M -3 3 H 3"
-                      stroke="#9333EA" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <animate attributeName="stroke" values="#9333EA;#A855F7;#9333EA" dur="2.2s" repeatCount="indefinite"/>
-                </path>
-              </g>
-              <g transform="translate(29,80) scale(0.85)">
-                <circle cx="0" cy="0" r="4" stroke="#10B981" strokeWidth="2" fill="none"/>
-                <path d="M 0 -8 V -12 M 0 8 V 12 M -8 0 H -12 M 8 0 H 12 M -6 -6 L -9 -9 M 6 -6 L 9 -9 M -6 6 L -9 9 M 6 6 L 9 9"
-                      stroke="#10B981" strokeWidth="2" strokeLinecap="round">
-                  <animate attributeName="stroke" values="#10B981;#34D399;#10B981" dur="3.2s" repeatCount="indefinite"/>
-                </path>
-              </g>
-              <path d="M80 32 L80 58 M110 80 L92 80 M80 122 L80 102 M50 80 L68 80"
-                    stroke="#cbd5e1" strokeWidth="1.2" opacity="1"/>
-            </svg>
-            <h2 style={styles.sidebarTitle}>DevMate</h2>
+      <div className={`sidebar ${!sidebarOpen ? 'sidebar-closed' : ''}`}>
+        <div className="sidebar-header">
+          <div className="logo-container">
+            <Logo width={100} height={100} gradientId="Sidebar" />
+            <h2 className="sidebar-title">DevMate</h2>
           </div>
-          <button onClick={() => setSidebarOpen(!sidebarOpen)} style={styles.toggleBtn}>
+          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="toggle-btn">
             {sidebarOpen ? '◀' : '▶'}
           </button>
         </div>
         
         {sidebarOpen && (
           <>
-            <button onClick={startNewChat} style={styles.newChatBtn}>
+            <button onClick={startNewChat} className="new-chat-btn">
               ➕ New Chat
             </button>
             
-            <div style={styles.conversationsList}>
-              <h3 style={styles.conversationsHeader}>History</h3>
+            <div className="conversations-list">
+              <h3 className="conversations-header">History</h3>
               {conversations.length === 0 ? (
-                <p style={styles.noConversations}>No conversations yet</p>
+                <p className="no-conversations">No conversations yet</p>
               ) : (
                 conversations.map((conv) => {
                   const preview = getConversationPreview(conv);
@@ -503,13 +627,10 @@ const ChatPage = ({ token, username, onLogout }) => {
                   return (
                     <div 
                       key={conv._id} 
-                      style={{
-                        ...styles.conversationCard,
-                        ...(isActive ? styles.conversationCardActive : {})
-                      }}
+                      className={`conversation-card ${isActive ? 'active' : ''}`}
                       onClick={() => loadConversation(conv)}
                     >
-                      <div style={styles.conversationDate}>
+                      <div className="conversation-date">
                         {new Date(conv.updated_at || conv.created_at).toLocaleDateString('en-US', { 
                           month: 'short', 
                           day: 'numeric',
@@ -517,15 +638,15 @@ const ChatPage = ({ token, username, onLogout }) => {
                           minute: '2-digit'
                         })}
                       </div>
-                      <div style={styles.conversationContent}>
-                        <div style={styles.conversationUser}>
-                          <span style={styles.roleLabel}>You:</span> {preview.userMsg}
+                      <div className="conversation-content">
+                        <div className="conversation-user">
+                          <span className="role-label">You:</span> {preview.userMsg}
                         </div>
-                        <div style={styles.conversationAi}>
-                          <span style={styles.roleLabel}>AI:</span> {preview.aiMsg}
+                        <div className="conversation-ai">
+                          <span className="role-label">AI:</span> {preview.aiMsg}
                         </div>
                       </div>
-                      <div style={styles.conversationMeta}>
+                      <div className="conversation-meta">
                         {conv.messages?.length || 0} msgs • {userMsgCount} from you
                       </div>
                     </div>
@@ -538,86 +659,28 @@ const ChatPage = ({ token, username, onLogout }) => {
       </div>
 
       {/* Main Chat Area */}
-      <div style={styles.mainContent}>
-        <div style={styles.topBar}>
+      <div className="main-content">
+        <div className="top-bar">
           {!sidebarOpen && (
-            <button onClick={() => setSidebarOpen(true)} style={styles.openSidebarBtn}>
+            <button onClick={() => setSidebarOpen(true)} className="open-sidebar-btn">
               ☰
             </button>
           )}
-          <div style={styles.userInfo}>
-            <span style={styles.username}>{username}</span>
-            <button onClick={onLogout} style={styles.logoutBtn}>Logout</button>
+          <div className="user-info">
+            <span className="username">{username}</span>
+            <button onClick={onLogout} className="logout-btn">Logout</button>
           </div>
         </div>
 
-        <div ref={chatRef} style={styles.chatContainer}>
-          <div style={styles.watermarkContainer}>
-            <svg viewBox="0 0 160 180" style={styles.watermarkSvg} fill="none" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <linearGradient id="mainGradientWatermark" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#4F46E5"/>
-                  <stop offset="100%" stopColor="#9333EA"/>
-                </linearGradient>
-                <linearGradient id="accentGradientWatermark" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#F59E0B"/>
-                  <stop offset="100%" stopColor="#FCD34D"/>
-                </linearGradient>
-                <filter id="glowWatermark">
-                  <feGaussianBlur stdDeviation="3" result="blur"/>
-                  <feMerge>
-                    <feMergeNode in="blur"/>
-                    <feMergeNode in="SourceGraphic"/>
-                  </feMerge>
-                </filter>
-              </defs>
-              <circle cx="80" cy="80" r="66" stroke="url(#mainGradientWatermark)" strokeWidth="1.8" opacity="1"/>
-              <circle cx="80" cy="80" r="42" stroke="url(#accentGradientWatermark)" strokeWidth="2.5" opacity="1">
-                <animate attributeName="r" values="42; 60; 42" dur="3.8s" repeatCount="indefinite" />
-                <animate attributeName="opacity" values="1; 0; 1" dur="3.8s" repeatCount="indefinite" />
-              </circle>
-              <circle cx="80" cy="80" r="9" fill="url(#accentGradientWatermark)" filter="url(#glowWatermark)">
-                <animate attributeName="r" values="9; 11; 9" dur="2s" repeatCount="indefinite"/>
-              </circle>
-              <g transform="translate(80,80) scale(1.1)">
-                <path d="M -28 -22 Q 0 -40 28 -22 L 28 22 Q 0 40 -28 22 Z" 
-                      stroke="url(#mainGradientWatermark)" strokeWidth="5" fill="none" opacity="0.9"/>
-                <path d="M -18 20 L -6 -10 L 0 10 L 6 -10 L 18 20" 
-                      stroke="url(#accentGradientWatermark)" strokeWidth="4" fill="none" opacity="0.9"/>
-              </g>
-              <g transform="translate(80,22) scale(0.85)">
-                <path d="M -7 -5 L -12 0 L -7 5 M 7 -5 L 12 0 L 7 5"
-                      stroke="#4F46E5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <animate attributeName="stroke" values="#4F46E5;#6366F1;#4F46E5" dur="2.6s" repeatCount="indefinite"/>
-                </path>
-              </g>
-              <g transform="translate(138,80) scale(0.85)">
-                <path d="M -6 -8 H 6 V 8 H -6 M -6 -8 L -10 -6 V 6 H -6"
-                      stroke="#F59E0B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <animate attributeName="stroke" values="#F59E0B;#FBBF24;#F59E0B" dur="2.4s" repeatCount="indefinite"/>
-                </path>
-              </g>
-              <g transform="translate(80,133) scale(0.85)">
-                <path d="M -8 -10 H 8 V 10 H -8 Z M -5 -6 H -1 M 1 -6 H 5 M -5 -2 H -1 M 1 -2 H 5 M -3 3 H 3"
-                      stroke="#9333EA" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <animate attributeName="stroke" values="#9333EA;#A855F7;#9333EA" dur="2.2s" repeatCount="indefinite"/>
-                </path>
-              </g>
-              <g transform="translate(29,80) scale(0.85)">
-                <circle cx="0" cy="0" r="4" stroke="#10B981" strokeWidth="2" fill="none"/>
-                <path d="M 0 -8 V -12 M 0 8 V 12 M -8 0 H -12 M 8 0 H 12 M -6 -6 L -9 -9 M 6 -6 L 9 -9 M -6 6 L -9 9 M 6 6 L 9 9"
-                      stroke="#10B981" strokeWidth="2" strokeLinecap="round">
-                  <animate attributeName="stroke" values="#10B981;#34D399;#10B981" dur="3.2s" repeatCount="indefinite"/>
-                </path>
-              </g>
-              <path d="M80 32 L80 58 M110 80 L92 80 M80 122 L80 102 M50 80 L68 80"
-                    stroke="#cbd5e1" strokeWidth="1.2" opacity="1"/>
-            </svg>
+        <div ref={chatRef} className="chat-container">
+          <div className="watermark-container">
+            <Logo width={500} height={500} gradientId="Watermark" />
           </div>
           {messages.length === 0 ? (
-            <div style={styles.emptyState}>
+            <div className="empty-state">
               <h2>Welcome to DevMate! 👋</h2>
               <p>Start a conversation by typing a message below.</p>
+              <p className="hint">💡 You can also upload files (PDF, images, text) using the 📎 button</p>
             </div>
           ) : (
             messages.map((msg, idx) => (
@@ -625,23 +688,41 @@ const ChatPage = ({ token, username, onLogout }) => {
             ))
           )}
           {loading && (
-            <div style={styles.loadingIndicator}>AI is thinking...</div>
+            <div className="loading-indicator">AI is thinking...</div>
           )}
         </div>
 
-        <div style={styles.inputRow}>
-          <input
-            type="text"
-            placeholder="Type your message..."
+        {/* NEW ChatGPT-style input area */}
+        <div className="input-container">
+          <textarea
+            ref={textareaRef}
+            className="chat-textarea"
+            placeholder="Type a message..."
+            rows={1}
             value={userInput}
-            onChange={(e) => setUserInput(e.target.value)}
-            onKeyPress={handleKeyPress}
-            style={styles.textInput}
+            onKeyDown={handleKeyDown}
+            onChange={handleInputChange}
             disabled={loading}
-          />
-          <button onClick={sendMessage} style={styles.sendBtn} disabled={loading}>
-            {loading ? 'Sending...' : 'Send'}
-          </button>
+          ></textarea>
+
+          <div className="input-actions">
+            <label className="upload-btn">
+              📎
+              <input 
+                type="file" 
+                style={{ display: "none" }} 
+                onChange={handleFileUpload}
+              />
+            </label>
+
+            <button 
+              className="send-icon" 
+              onClick={sendMessage} 
+              disabled={loading}
+            >
+              ➤
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -679,7 +760,7 @@ export default function App() {
   };
 
   return (
-    <div style={styles.body}>
+    <div className="app">
       {isAuthenticated ? (
         <ChatPage token={token} username={username} onLogout={handleLogout} />
       ) : (
@@ -689,325 +770,3 @@ export default function App() {
   );
 }
 
-// Styles
-const styles = {
-  body: {
-    fontFamily: 'Inter, Arial, sans-serif',
-    margin: 0,
-    background: '#f7fafc',
-    width: '100%',
-    minHeight: '100vh',
-  },
-  appContainer: {
-    display: 'flex',
-    height: '100vh',
-    overflow: 'hidden',
-  },
-  sidebar: {
-    width: '280px',
-    background: '#202123',
-    color: '#fff',
-    display: 'flex',
-    flexDirection: 'column',
-    transition: 'width 0.3s ease',
-    borderRight: '1px solid #4d4d4f',
-  },
-  sidebarClosed: {
-    width: '0px',
-    overflow: 'hidden',
-  },
-  sidebarHeader: {
-    padding: '16px',
-    borderBottom: '1px solid #4d4d4f',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  logoContainer: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-  },
-  sidebarTitle: {
-    margin: 0,
-    fontSize: '20px',
-    fontWeight: '600',
-  },
-  toggleBtn: {
-    background: 'transparent',
-    border: 'none',
-    color: '#fff',
-    cursor: 'pointer',
-    fontSize: '18px',
-    padding: '4px 8px',
-  },
-  newChatBtn: {
-    margin: '16px',
-    padding: '12px',
-    background: '#343541',
-    color: '#fff',
-    border: '1px solid #565869',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: '500',
-    transition: 'background 0.2s',
-  },
-  conversationsList: {
-    flex: 1,
-    overflowY: 'auto',
-    padding: '0 12px',
-  },
-  conversationsHeader: {
-    fontSize: '12px',
-    fontWeight: '600',
-    color: '#8e8ea0',
-    textTransform: 'uppercase',
-    padding: '8px 4px',
-    margin: '8px 0',
-  },
-  noConversations: {
-    color: '#8e8ea0',
-    fontSize: '13px',
-    padding: '8px',
-    textAlign: 'center',
-    fontStyle: 'italic',
-  },
-  conversationCard: {
-    background: '#343541',
-    borderRadius: '6px',
-    padding: '10px',
-    marginBottom: '8px',
-    cursor: 'pointer',
-    border: '1px solid transparent',
-    transition: 'all 0.2s',
-  },
-  conversationCardActive: {
-    background: '#40414f',
-    border: '1px solid #565869',
-  },
-  conversationDate: {
-    fontSize: '11px',
-    color: '#8e8ea0',
-    marginBottom: '6px',
-  },
-  conversationContent: {
-    marginBottom: '6px',
-  },
-  conversationUser: {
-    fontSize: '13px',
-    color: '#ececf1',
-    marginBottom: '4px',
-    lineHeight: '1.4',
-  },
-  conversationAi: {
-    fontSize: '12px',
-    color: '#b4b4b4',
-    lineHeight: '1.4',
-  },
-  roleLabel: {
-    fontWeight: '600',
-    color: '#19c37d',
-  },
-  conversationMeta: {
-    fontSize: '11px',
-    color: '#8e8ea0',
-  },
-  mainContent: {
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'column',
-    background: '#fff',
-  },
-  topBar: {
-    padding: '12px 20px',
-    borderBottom: '1px solid #e5e7eb',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    background: '#fff',
-  },
-  openSidebarBtn: {
-    background: 'transparent',
-    border: 'none',
-    fontSize: '24px',
-    cursor: 'pointer',
-    color: '#202123',
-    padding: '4px 8px',
-  },
-  userInfo: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-    marginLeft: 'auto',
-  },
-  username: {
-    fontWeight: '600',
-    fontSize: '14px',
-  },
-  logoutBtn: {
-    padding: '8px 16px',
-    borderRadius: '6px',
-    border: 'none',
-    background: '#0366d6',
-    color: '#fff',
-    cursor: 'pointer',
-    fontSize: '14px',
-  },
-  chatContainer: {
-    flex: 1,
-    padding: '20px',
-    overflowY: 'auto',
-    display: 'flex',
-    flexDirection: 'column',
-    background: '#fff',
-    position: 'relative',
-  },
-  watermarkContainer: {
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
-    transform: 'translate(-50%, -50%)',
-    width: '500px',
-    height: '500px',
-    opacity: 0.2,
-    pointerEvents: 'none',
-    zIndex: 0,
-  },
-  watermarkSvg: {
-    width: '100%',
-    height: '100%',
-  },
-  emptyState: {
-    textAlign: 'center',
-    color: '#6b7280',
-    marginTop: '100px',
-    position: 'relative',
-    zIndex: 1,
-  },
-  message: {
-    padding: '12px 16px',
-    borderRadius: '8px',
-    margin: '6px 0',
-    maxWidth: '70%',
-    lineHeight: '1.6',
-    fontSize: '15px',
-    position: 'relative',
-    zIndex: 1,
-  },
-  userMessage: {
-    background: '#0366d6',
-    color: '#fff',
-    marginLeft: 'auto',
-  },
-  aiMessage: {
-    background: '#f3f4f6',
-    color: '#111',
-    marginRight: 'auto',
-  },
-  inputRow: {
-    display: 'flex',
-    gap: '8px',
-    padding: '16px 20px',
-    borderTop: '1px solid #e5e7eb',
-    background: '#fff',
-  },
-  textInput: {
-    flex: 1,
-    padding: '12px 16px',
-    borderRadius: '8px',
-    border: '1px solid #d1d5db',
-    fontSize: '15px',
-    outline: 'none',
-  },
-  sendBtn: {
-    padding: '12px 24px',
-    borderRadius: '8px',
-    border: 'none',
-    background: '#0366d6',
-    color: '#fff',
-    cursor: 'pointer',
-    fontSize: '15px',
-    fontWeight: '500',
-  },
-  downloadBtn: {
-    marginTop: '8px',
-    padding: '8px 16px',
-    background: '#007bff',
-    borderRadius: '6px',
-    color: 'white',
-    border: 'none',
-    cursor: 'pointer',
-    fontSize: '14px',
-    display: 'block',
-  },
-  loadingIndicator: {
-    padding: '12px',
-    color: '#6b7280',
-    fontStyle: 'italic',
-    textAlign: 'center',
-  },
-  authContainer: {
-    width: '100%',
-    minHeight: '90vh',
-    padding: '40px',
-    background: '#ffffff',
-    borderRadius: '0',
-    boxShadow: '0 6px 18px rgba(0,0,0,0.04)',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-  },
-  authTitle: {
-    margin: '0 0 20px',
-    fontSize: '32px',
-  },
-  tabs: {
-    display: 'flex',
-    gap: '12px',
-    marginBottom: '30px',
-  },
-  tabButton: {
-    padding: '10px 20px',
-    background: '#e5e7eb',
-    border: 'none',
-    borderRadius: '6px',
-    fontSize: '16px',
-    cursor: 'pointer',
-    transition: 'background 0.2s',
-  },
-  tabButtonActive: {
-    background: '#0366d6',
-    color: '#fff',
-  },
-  form: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '14px',
-    width: '360px',
-  },
-  input: {
-    padding: '12px',
-    fontSize: '16px',
-    border: '1px solid #ddd',
-    borderRadius: '6px',
-  },
-  btn: {
-    padding: '12px',
-    background: '#0366d6',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '16px',
-  },
-  info: {
-    fontSize: '14px',
-    marginTop: '5px',
-  },
-  note: {
-    marginTop: '15px',
-    fontSize: '14px',
-    color: '#666',
-  },
-};
