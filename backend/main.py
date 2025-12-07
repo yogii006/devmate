@@ -1,13 +1,14 @@
-from fastapi import FastAPI, HTTPException, Depends, Body
+from fastapi import FastAPI, HTTPException, Depends, Body, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel, EmailStr
 from auth import hash_password, verify_password, create_access_token, decode_access_token
 from bson import ObjectId
 import json
+import base64
 
 # Centralized DB client
-from db import users_collection, sessions_collection, conversations_collection
+from db import users_collection, sessions_collection, conversations_collection, create_indexes
 from src.graph import sync_graph  # your LangGraph instance
 from datetime import datetime
 
@@ -25,6 +26,14 @@ app.add_middleware(
 )
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+
+# ---------------------------
+# Startup Event - Create DB Indexes
+# ---------------------------
+@app.on_event("startup")
+async def startup_event():
+    """Initialize database indexes on startup"""
+    await create_indexes()
 
 # ---------------------------
 # Schemas
@@ -77,7 +86,8 @@ async def login(user: UserLogin):
     return {
         "access_token": token,
         "token_type": "bearer",
-        "username": db_user["username"]
+        "username": db_user["username"],
+        "user_id": str(db_user["_id"])
     }
 
 # ---------------------------
@@ -95,13 +105,17 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
 # ---------------------------
 # Helper: AI / Graph Response
 # ---------------------------
-async def generate_ai_response(message: str) -> str:
+async def generate_ai_response(message: str, user_id: str = None) -> str:
     """
     Placeholder for AI/Graph integration.
     Replace with your actual LangGraph / OpenAI / custom logic.
     """
     # Example: synchronous call to LangGraph
-    result = sync_graph.invoke({"messages": [{"role": "user", "content": message}]})
+    input_data = {"messages": [{"role": "user", "content": message}]}
+    if user_id:
+        input_data["user_id"] = user_id
+    
+    result = await sync_graph.invoke(input_data)
     
     # Normalize response into string
     if isinstance(result, dict) and "messages" in result:
@@ -127,7 +141,7 @@ async def chat(req: MessageRequest, user=Depends(get_current_user)):
     messages.append({"role": "user", "content": req.message})
 
     # Generate actual AI response
-    ai_content = await generate_ai_response(req.message)
+    ai_content = await generate_ai_response(req.message, str(user["_id"]))
     ai_response = {"role": "assistant", "content": ai_content}
     messages.append(ai_response)
 
@@ -140,13 +154,61 @@ async def chat(req: MessageRequest, user=Depends(get_current_user)):
     return {"messages": messages}
 
 # ---------------------------
+# File Upload Endpoint (FIXED)
+# ---------------------------
+@app.post("/upload")
+async def upload_file(
+    file: UploadFile = File(...),
+    user=Depends(get_current_user)
+):
+    """
+    Upload a file and process it using RAG tool.
+    The file will be processed and stored in MongoDB for later querying.
+    """
+    try:
+        # Read file content
+        file_content = await file.read()
+        
+        # Convert to base64
+        base64_data = base64.b64encode(file_content).decode('utf-8')
+        
+        # Get user_id as string
+        user_id = str(user["_id"])
+        
+        # Directly import and call the tool
+        from src.tools.rag_tool import process_and_store_file
+        
+        # Call the tool directly (it's already async)
+        result = await process_and_store_file.ainvoke({
+            "file_data": base64_data,
+            "file_name": file.filename,
+            "file_type": file.content_type or "application/octet-stream",
+            "user_id": user_id
+        })
+        
+        # Result is a string message from the tool
+        return {
+            "status": "success",
+            "message": result,  # This is the string response from the tool
+            "file_name": file.filename,
+            "file_type": file.content_type,
+            "file_size": len(file_content)
+        }
+        
+    except Exception as e:
+        import traceback
+        print(f"Error in /upload endpoint: {str(e)}")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ---------------------------
 # Run Graph Endpoint (/run)
 # ---------------------------
 from fastapi import Request
 
 @app.post("/run")
 async def run_graph(request: Request, user=Depends(get_current_user), payload: dict = Body(...)):
-    """Invoke LangGraph with flexible payload and pass username for file uploads."""
+    """Invoke LangGraph with flexible payload and pass user_id for RAG operations."""
     try:
         # Get conversation_id from payload (if continuing existing conversation)
         conversation_id = payload.get("conversation_id")
@@ -174,11 +236,15 @@ async def run_graph(request: Request, user=Depends(get_current_user), payload: d
         if not formatted_messages:
             raise HTTPException(status_code=422, detail="No valid messages found")
 
-        # Pass username to sync_graph for file upload context
-        username = user["username"] if user and "username" in user else None
+        # Pass user_id to sync_graph for RAG operations
+        user_id = str(user["_id"])
         
-        # Use the invoke wrapper that handles message conversion
-        result = sync_graph.invoke({"messages": formatted_messages, "username": username})
+        # IMPORTANT: Pass user_id in the graph invocation
+        result = await sync_graph.invoke({
+            "messages": formatted_messages, 
+            "user_id": user_id,  # This is crucial for RAG tools
+            "username": user.get("username")
+        })
 
         # Normalize messages into JSON-safe list
         messages = []
@@ -273,5 +339,40 @@ async def get_conversation(conversation_id: str, user=Depends(get_current_user))
         conversation["user_id"] = str(conversation["user_id"])
         
         return {"conversation": conversation}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ---------------------------
+# Get User's Uploaded Files
+# ---------------------------
+@app.get("/files")
+async def get_user_files(user=Depends(get_current_user)):
+    """Get all files uploaded by the current user."""
+    try:
+        from src.tools.rag_tool import list_user_files
+        
+        user_id = str(user["_id"])
+        result = await list_user_files.ainvoke({"user_id": user_id})
+        
+        return {"files": result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ---------------------------
+# Delete File Endpoint
+# ---------------------------
+@app.delete("/files/{file_name}")
+async def delete_file(file_name: str, user=Depends(get_current_user)):
+    """Delete a specific file for the current user."""
+    try:
+        from src.tools.rag_tool import delete_user_file
+        
+        user_id = str(user["_id"])
+        result = await delete_user_file.ainvoke({
+            "user_id": user_id,
+            "file_name": file_name
+        })
+        
+        return {"message": result}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

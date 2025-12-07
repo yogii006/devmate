@@ -5,8 +5,15 @@ from src.tools.calculator_tools import calculator_tool
 from src.tools.currency_tools import currency_converter
 from src.tools.weather_tools import weather_tool
 from src.tools.youtube_tools import youtube_summary_tool
-# from src.tools.st_tools import youtube_summary_tool
 from src.tools.stock_tools import stock_price_tool
+# Import RAG tools
+from src.tools.rag_tool import (
+    process_and_store_file, 
+    query_documents, 
+    list_user_files, 
+    delete_user_file,
+    delete_all_user_files
+)
 from src.agents.study_agent import StudyAgent
 from langchain_openai import ChatOpenAI
 from langgraph.graph import StateGraph, MessagesState
@@ -17,7 +24,6 @@ try:
     from dotenv import load_dotenv
     load_dotenv()
 except Exception:
-    # dotenv is optional in some environments; ignore if not available
     pass
 
 # -----------------------------
@@ -30,24 +36,27 @@ def format_messages_for_api(messages):
         if isinstance(msg, HumanMessage):
             formatted.append({"role": "user", "content": msg.content})
         elif isinstance(msg, AIMessage):
-            formatted.append({"role": "assistant", "content": msg.content})
+            if msg.content:  # Check if content is not empty
+                formatted.append({"role": "assistant", "content": msg.content})
         elif isinstance(msg, SystemMessage):
-            formatted.append({"role": "system", "content": msg.content})
+            if msg.content:  # Check if content is not empty
+                formatted.append({"role": "system", "content": msg.content})
         elif isinstance(msg, ToolMessage):
             # Skip tool messages or include them as system messages
-            formatted.append({"role": "system", "content": f"Tool result: {msg.content}"})
+            formatted.append({"role": "system", "content": f"Tool result: {'tool called'}"})
         elif isinstance(msg, dict):
             # Already a dict, ensure it has role and content
-            if "role" in msg and "content" in msg:
+            if "role" in msg and "content" in msg and msg["content"]:  # Check if content is not empty
                 formatted.append({"role": msg["role"], "content": msg["content"]})
-            elif "content" in msg:
+            elif "content" in msg and msg["content"]:  # Check if content is not empty
                 formatted.append({"role": "assistant", "content": msg["content"]})
         else:
             # Unknown message type, try to extract content
             content = getattr(msg, "content", str(msg))
-            formatted.append({"role": "assistant", "content": content})
-    return formatted
+            if content:  # Check if content is not empty
+                formatted.append({"role": "assistant", "content": content})
 
+    return formatted
 
 def convert_api_messages_to_langchain(messages):
     """Convert API dicts to LangChain message objects"""
@@ -69,18 +78,32 @@ def convert_api_messages_to_langchain(messages):
     return langchain_messages
 
 
-# -----------------------------
-# Use the State class, not instance
-# -----------------------------
-persistent_memory_class = MessagesState
-
 class DevGraph:
     def __init__(self, model_name: str = "gpt-4o-mini"):
         self.llm = ChatOpenAI(
             model=model_name,
             api_key=os.getenv("OPENAI_API_KEY")
         )
-        self.tools = [write_file, read_file, current_time_tool, tavily_search_tool, youtube_summary_tool,calculator_tool, currency_converter, weather_tool, stock_price_tool]
+        
+        # Add RAG tools to the tools list
+        self.tools = [
+            write_file, 
+            read_file, 
+            current_time_tool, 
+            tavily_search_tool, 
+            youtube_summary_tool,
+            calculator_tool, 
+            currency_converter, 
+            weather_tool, 
+            stock_price_tool,
+            # RAG Tools
+            process_and_store_file,
+            query_documents,
+            list_user_files,
+            delete_user_file,
+            delete_all_user_files
+        ]
+        
         # Bind tools to the LLM so it can emit tool calls
         try:
             self.llm_with_tools = self.llm.bind_tools(self.tools)
@@ -92,11 +115,14 @@ class DevGraph:
         
         # Build graph once during initialization (thread-safe, stateless)
         self.compiled_graph = self._build()
+        
+        # Store user_id for context (thread-local)
+        self.current_user_id = None
 
     def _build(self):
         """Build the graph once - reused for all requests"""
         # pass the class, not an instance
-        graph = StateGraph(persistent_memory_class)
+        graph = StateGraph(MessagesState)
 
         # Agents
         # Give the agent the tool-aware LLM when available
@@ -120,19 +146,25 @@ class DevGraph:
         graph.add_edge("tool_node", "study_agent")
         return graph.compile()
     
-    def invoke(self, input_data):
+    async def invoke(self, input_data):
         """Wrapper around graph invoke to handle message format conversion
         
         Each invocation is independent - state comes from input_data parameter.
         This makes it safe for concurrent users.
         """
+        # Store user_id for this invocation in context
+        user_id = input_data.get("user_id")
+        if user_id:
+            from src.tools.rag_tool import set_user_context
+            set_user_context(user_id)
+        
         # Convert incoming API messages to LangChain format
         if "messages" in input_data:
             input_data["messages"] = convert_api_messages_to_langchain(input_data["messages"])
         
         # Invoke the compiled graph (each call gets its own state)
         # The graph is stateless - all data flows through input_data
-        result = self.compiled_graph.invoke(input_data)
+        result = await self.compiled_graph.ainvoke(input_data)
         
         # Convert output messages back to API format
         if isinstance(result, dict) and "messages" in result:
