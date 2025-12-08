@@ -480,8 +480,8 @@ body {
 }
 
 .user-message {
-  background: #0366d6;
-  color: #fff;
+  background: #e7e5e2;
+  color: #000000;
   margin-left: auto;
 }
 
@@ -495,6 +495,12 @@ body {
   word-wrap: break-word;
   overflow-wrap: break-word;
   max-width: 100%;
+}
+
+/* For user messages only, preserve formatting exactly */
+.user-message .message-text {
+  white-space: pre-wrap;
+  font-family: inherit;
 }
 
 /* Markdown inside messages */
@@ -677,7 +683,7 @@ body {
   font-family: 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', monospace !important;
   font-size: 14px !important;
   line-height: 1.5 !important;
-  color: #000000 !important; /* Black text on white background */
+  color: #000000 !important;
   background: transparent !important;
 }
 
@@ -686,57 +692,57 @@ body {
 .code-block-wrapper .token.prolog,
 .code-block-wrapper .token.doctype,
 .code-block-wrapper .token.cdata {
-  color: #a0a1a7 !important; /* Grey for comments */
+  color: #a0a1a7 !important;
   font-style: italic;
 }
 
 .code-block-wrapper .token.string,
 .code-block-wrapper .token.attr-value {
-  color: #50a14f !important; /* Green for strings */
+  color: #50a14f !important;
 }
 
 .code-block-wrapper .token.keyword,
 .code-block-wrapper .token.boolean,
 .code-block-wrapper .token.operator {
-  color: #a626a4 !important; /* Purple for keywords */
+  color: #a626a4 !important;
 }
 
 .code-block-wrapper .token.function,
 .code-block-wrapper .token.function-name {
-  color: #4078f2 !important; /* Blue for functions */
+  color: #4078f2 !important;
 }
 
 .code-block-wrapper .token.number {
-  color: #986801 !important; /* Brown/orange for numbers */
+  color: #986801 !important;
 }
 
 .code-block-wrapper .token.property,
 .code-block-wrapper .token.variable {
-  color: #e45649 !important; /* Red for variables */
+  color: #e45649 !important;
 }
 
 .code-block-wrapper .token.class-name {
-  color: #c18401 !important; /* Orange for class names */
+  color: #c18401 !important;
 }
 
 .code-block-wrapper .token.tag {
-  color: #e45649 !important; /* Red for HTML tags */
+  color: #e45649 !important;
 }
 
 .code-block-wrapper .token.attr-name {
-  color: #986801 !important; /* Brown for attributes */
+  color: #986801 !important;
 }
 
 .code-block-wrapper .token.punctuation {
-  color: #383a42 !important; /* Dark for punctuation */
+  color: #383a42 !important;
 }
 
 .code-block-wrapper .token.constant {
-  color: #0184bc !important; /* Blue for constants */
+  color: #0184bc !important;
 }
 
 .code-block-wrapper .token.selector {
-  color: #50a14f !important; /* Green for CSS selectors */
+  color: #50a14f !important;
 }
 
 /* Ensure syntax highlighter doesn't overflow */
@@ -854,7 +860,7 @@ body {
   background: #fff;
 }
 
-/* Input Area - new ChatGPT-style */
+/* Input Area - ChatGPT-style */
 .input-container {
   position: relative;
   display: flex;
@@ -877,8 +883,10 @@ body {
   resize: none;
   background: transparent;
   line-height: 22px;
-  max-height: 220px; /* ~10 lines */
+  max-height: 220px;
   overflow-y: auto;
+  white-space: pre-wrap; /* Preserve line breaks and spaces in textarea */
+  font-family: inherit;
 }
 
 .input-actions {

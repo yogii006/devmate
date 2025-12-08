@@ -514,7 +514,7 @@ const ChatPage = ({ token, username, onLogout }) => {
   };
 
   const sendMessage = async () => {
-    const val = userInput.trim();
+    const val = userInput;
     if (!val) return;
 
     const userMsg = { role: 'user', content: val };
@@ -808,3 +808,4 @@ export default function App() {
     </div>
   );
 }
+
