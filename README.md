@@ -1,4 +1,4 @@
-# DevMate 🤖
+# DevMate New🤖
 
 **DevMate** is an AI-powered assistant platform that combines conversational AI with document analysis and specialized tools. Built with FastAPI, React, LangChain, and MongoDB, it provides an intelligent chat interface with RAG (Retrieval Augmented Generation) capabilities for document Q&A.
 
