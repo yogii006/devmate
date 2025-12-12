@@ -4,8 +4,8 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import './App.css';
 
-// const API_ROOT = "http://localhost:8000";
-const API_ROOT = "https://devmate-lxbp.onrender.com";
+const API_ROOT = "http://localhost:8000";
+// const API_ROOT = "https://devmate-lxbp.onrender.com";
 const WS_ROOT = API_ROOT.replace(/^http/, "ws");
 
 
