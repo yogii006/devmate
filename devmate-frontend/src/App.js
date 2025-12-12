@@ -6,6 +6,8 @@ import './App.css';
 
 // const API_ROOT = "http://localhost:8000";
 const API_ROOT = "https://devmate-lxbp.onrender.com";
+const WS_ROOT = API_ROOT.replace(/^http/, "ws");
+
 
 const Logo = ({ width = 100, height = 100, gradientId = "" }) => (
   <svg viewBox="0 0 160 180" width={width} height={height} fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -273,7 +275,19 @@ const ChatPage = ({ token, username, onLogout }) => {
   
       // Connect WS
       // wsRef.current = new WebSocket(`ws://localhost:8000/voice/ws?token=${token}`);
-      wsRef.current = new WebSocket(`wss://devmate-lxbp.onrender.com/voice/ws?token=${token}`);
+      // Connect WS
+      wsRef.current = new WebSocket(`${WS_ROOT}/voice/ws?token=${token}`);
+
+      wsRef.current.onopen = () => {
+        console.log("🟢 Voice WebSocket connected.");
+
+        // ⭐ Required for Render proxy
+        wsRef.current.send(JSON.stringify({ event: "start" }));
+      };
+
+      wsRef.current.onclose = () => {
+        console.log("🔴 Voice WebSocket closed.");
+      };
 
   
       wsRef.current.onmessage = (event) => {
@@ -302,11 +316,6 @@ const ChatPage = ({ token, username, onLogout }) => {
           }
         }
         
-      };
-  
-      // Handle RECONNECT state
-      wsRef.current.onopen = () => {
-        console.log("Voice WebSocket connected.");
       };
   
       // Send audio every 200ms
