@@ -1,4 +1,4 @@
-# voice_ws.py (FINAL VERSION — FIXED)
+# voice_ws.py — FINAL UPDATED VERSION WITH WORKING TTS
 
 import json
 import base64
@@ -8,14 +8,10 @@ from fastapi.websockets import WebSocketDisconnect
 from src.auth import decode_access_token
 from src.graph import sync_graph
 
-import soundfile as sf
-import numpy as np
-
 from openai import OpenAI
 client = OpenAI()
 
 router = APIRouter()
-
 
 # ---------------------------
 # AUTH FOR WEBSOCKET
@@ -53,12 +49,13 @@ async def voice_chat(websocket: WebSocket):
         while True:
             msg = await websocket.receive()
 
-            # ------------------------------------
-            # CHECK FOR END EVENT (text-based)
-            # ------------------------------------
+            # ------------------------------------------
+            # END EVENT ("mouseup" or "touchend")
+            # ------------------------------------------
             if msg["type"] == "websocket.receive" and "text" in msg:
                 try:
                     data = json.loads(msg["text"])
+
                     if data.get("event") == "end":
                         print("⏹ Received end signal")
 
@@ -66,30 +63,28 @@ async def voice_chat(websocket: WebSocket):
                             await websocket.send_json({"error": "No audio received"})
                             continue
 
-                        # ------------------------------------
-                        # CONCAT AUDIO
-                        # ------------------------------------
+                        # Combine all binary audio chunks
                         raw_bytes = b"".join(audio_chunks)
                         audio_chunks = []
 
-                        # Convert WebM/Opus → WAV PCM
-                        # Whisper can read WebM directly
+                        # ------------------------------------------------------
+                        # STEP 1 — TRANSCRIBE WEBM AUDIO (forcing English)
+                        # ------------------------------------------------------
                         whisper = client.audio.transcriptions.create(
                             model="gpt-4o-transcribe",
                             file=("audio.webm", raw_bytes, "audio/webm"),
-                            language="en"  
+                            language="en"
                         )
                         transcript = whisper.text
-
 
                         await websocket.send_json({
                             "type": "transcript",
                             "text": transcript
                         })
 
-                        # ------------------------------------
-                        # SEND TO LANGGRAPH
-                        # ------------------------------------
+                        # ------------------------------------------------------
+                        # STEP 2 — SEND TRANSCRIPT TO LANGGRAPH AGENT
+                        # ------------------------------------------------------
                         result = await sync_graph.invoke({
                             "messages": [{"role": "user", "content": transcript}],
                             "user_id": user["email"]
@@ -102,33 +97,33 @@ async def voice_chat(websocket: WebSocket):
                             "text": ai_reply
                         })
 
-                        # ------------------------------------
-                        # ASSISTANT TEXT → SPEECH
-                        # ------------------------------------
-                        
+                        # ------------------------------------------------------
+                        # STEP 3 — CONVERT AI REPLY → SPEECH (TTS PATCH APPLIED)
+                        # ------------------------------------------------------
                         speech_response = client.audio.speech.create(
                             model="gpt-4o-mini-tts",
                             voice="alloy",
                             input=ai_reply
                         )
 
-                        # Extract raw bytes
-                        speech_bytes = speech_response.read()
+                        # MUST call .read() because API returns streaming-like bytes
+                        raw_audio = speech_response.read()
+
+                        audio_base64 = base64.b64encode(raw_audio).decode()
 
                         await websocket.send_json({
                             "type": "assistant_audio",
-                            "audio": base64.b64encode(speech_bytes).decode()
-})
-
+                            "audio": audio_base64
+                        })
 
                         continue
 
                 except json.JSONDecodeError:
-                    pass  # Ignore malformed text messages
+                    pass  # ignore non-JSON text messages
 
-            # ------------------------------------
-            # BINARY AUDIO CHUNK
-            # ------------------------------------
+            # ------------------------------------------------------
+            # BINARY AUDIO CHUNKS FROM MediaRecorder
+            # ------------------------------------------------------
             if msg["type"] == "websocket.receive" and "bytes" in msg:
                 audio_chunks.append(msg["bytes"])
 
