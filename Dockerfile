@@ -1,7 +1,7 @@
 # Repo-root Dockerfile: builds frontend and backend into a single image
 
 # Frontend build stage
-FROM node:18-alpine as frontend-build
+FROM node:18-alpine AS frontend-build
 WORKDIR /frontend
 COPY devmate-frontend/package.json devmate-frontend/package-lock.json* ./
 RUN npm ci --silent || npm install --silent
