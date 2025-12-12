@@ -49,21 +49,43 @@
 ## 🏗️ Tech Stack
 
 ### Backend
-- **Framework**: FastAPI
-- **AI/ML**: 
   - LangChain & LangGraph for agent orchestration
   - OpenAI GPT-4o-mini & GPT-4o (for vision)
-- **Database**: MongoDB (Motor async driver)
-- **File Storage**: Supabase Storage
-- **Authentication**: JWT tokens with passlib
-- **File Processing**: PyPDF2, Pillow, pytesseract
 
 ### Frontend
-- **Framework**: React 18.3
-- **Styling**: Custom CSS with modern design
-- **Markdown**: react-markdown
-- **Syntax Highlighting**: react-syntax-highlighter
-- **HTTP Client**: Fetch API
+
+
+## Docker / Local container setup
+
+I added Dockerfiles for the backend and frontend and a `docker-compose.yml` to run the whole stack locally (including MongoDB).
+
+Quick start (development):
+
+1. Copy backend env example:
+
+```bash
+cp backend/.env.example backend/.env
+# Edit backend/.env and set secrets (OPENAI_API_KEY, SECRET_KEY, etc.)
+```
+
+2. Build and start services:
+
+```bash
+docker-compose up --build
+```
+
+- Backend will be available at: http://localhost:8000
+- Frontend (React served by nginx) will be available at: http://localhost:3000
+
+Notes:
+- The `backend/Dockerfile` uses `python:3.11-slim` and installs some system libs required by common packages (Pillow, ffmpeg, etc.). If you see build errors for native libs, install the missing apt packages in that Dockerfile.
+- The `devmate-frontend/Dockerfile` builds the React app and serves the static `build/` with nginx.
+- Use a proper secret for `SECRET_KEY` in production and do not commit it to source control.
+
+If you want a production-ready deployment, we can:
+- Add a production-ready nginx config, healthchecks, and non-root user in containers.
+- Add a managed secrets approach (Docker secrets, environment store, or Vault).
+- Harden image layers and reduce build deps in the final image.
 
 ## 📋 Prerequisites
 
