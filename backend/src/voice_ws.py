@@ -70,17 +70,27 @@ async def voice_chat(websocket: WebSocket):
                         # ------------------------------------------------------
                         # STEP 1 — TRANSCRIBE WEBM AUDIO (forcing English)
                         # ------------------------------------------------------
-                        whisper = client.audio.transcriptions.create(
-                            model="gpt-4o-transcribe",
-                            file=("audio.webm", raw_bytes, "audio/webm"),
-                            language="en"
-                        )
-                        transcript = whisper.text
+                        try:
+                            whisper = client.audio.transcriptions.create(
+                                model="gpt-4o-transcribe",
+                                file=("audio.webm", raw_bytes, "audio/webm"),
+                                language="en"
+                            )
+                            transcript = whisper.text
 
-                        await websocket.send_json({
-                            "type": "transcript",
-                            "text": transcript
-                        })
+                            await websocket.send_json({
+                                "type": "transcript",
+                                "text": transcript
+                            })
+                        except Exception as e:
+                            import traceback
+                            tb = traceback.format_exc()
+                            print("Transcription error:", e)
+                            print(tb)
+                            await websocket.send_json({"type": "error", "message": f"transcription failed: {str(e)}"})
+                            # reset audio buffer and continue
+                            audio_chunks = []
+                            continue
 
                         # ------------------------------------------------------
                         # STEP 2 — SEND TRANSCRIPT TO LANGGRAPH AGENT
@@ -100,21 +110,29 @@ async def voice_chat(websocket: WebSocket):
                         # ------------------------------------------------------
                         # STEP 3 — CONVERT AI REPLY → SPEECH (TTS PATCH APPLIED)
                         # ------------------------------------------------------
-                        speech_response = client.audio.speech.create(
-                            model="gpt-4o-mini-tts",
-                            voice="alloy",
-                            input=ai_reply
-                        )
+                        try:
+                            speech_response = client.audio.speech.create(
+                                model="gpt-4o-mini-tts",
+                                voice="alloy",
+                                input=ai_reply
+                            )
 
-                        # MUST call .read() because API returns streaming-like bytes
-                        raw_audio = speech_response.read()
+                            # MUST call .read() because API returns streaming-like bytes
+                            raw_audio = speech_response.read()
 
-                        audio_base64 = base64.b64encode(raw_audio).decode()
+                            audio_base64 = base64.b64encode(raw_audio).decode()
 
-                        await websocket.send_json({
-                            "type": "assistant_audio",
-                            "audio": audio_base64
-                        })
+                            await websocket.send_json({
+                                "type": "assistant_audio",
+                                "audio": audio_base64
+                            })
+                        except Exception as e:
+                            import traceback
+                            tb = traceback.format_exc()
+                            print("TTS error:", e)
+                            print(tb)
+                            await websocket.send_json({"type": "error", "message": f"tts failed: {str(e)}"})
+                            continue
 
                         continue
 
