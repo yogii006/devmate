@@ -285,9 +285,20 @@ const ChatPage = ({ token, username, onLogout }) => {
         }
   
         if (data.type === "assistant_audio") {
-          console.log("Received TTS audio base64:", data.audio);
-          // play TTS if needed
+          try {
+            const audioBase64 = data.audio;
+            const audioBytes = Uint8Array.from(atob(audioBase64), c => c.charCodeAt(0));
+            const audioBlob = new Blob([audioBytes], { type: "audio/wav" });
+            const audioUrl = URL.createObjectURL(audioBlob);
+        
+            const audio = new Audio(audioUrl);
+            audio.play().catch(err => console.error("Audio play error:", err));
+        
+          } catch (err) {
+            console.error("Failed to play audio:", err);
+          }
         }
+        
       };
   
       // Handle RECONNECT state
