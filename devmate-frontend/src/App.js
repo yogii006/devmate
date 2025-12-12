@@ -6,9 +6,6 @@ import './App.css';
 
 // const API_ROOT = "http://localhost:8000";
 const API_ROOT = "https://devmate-lxbp.onrender.com";
-const WS_ROOT = API_ROOT.replace(/^http/, "ws");
-
-
 const Logo = ({ width = 100, height = 100, gradientId = "" }) => (
   <svg viewBox="0 0 160 180" width={width} height={height} fill="none" xmlns="http://www.w3.org/2000/svg">
     <defs>
@@ -274,21 +271,7 @@ const ChatPage = ({ token, username, onLogout }) => {
       mediaRecorderRef.current = new MediaRecorder(stream, { mimeType: "audio/webm" });
   
       // Connect WS
-      // wsRef.current = new WebSocket(`ws://localhost:8000/voice/ws?token=${token}`);
-      // Connect WS
-      wsRef.current = new WebSocket(`${WS_ROOT}/voice/ws?token=${token}`);
-
-      wsRef.current.onopen = () => {
-        console.log("🟢 Voice WebSocket connected.");
-
-        // ⭐ Required for Render proxy
-        wsRef.current.send(JSON.stringify({ event: "start" }));
-      };
-
-      wsRef.current.onclose = () => {
-        console.log("🔴 Voice WebSocket closed.");
-      };
-
+      wsRef.current = new WebSocket(`ws://localhost:8000/voice/ws?token=${token}`);
   
       wsRef.current.onmessage = (event) => {
         const data = JSON.parse(event.data);
@@ -318,6 +301,11 @@ const ChatPage = ({ token, username, onLogout }) => {
         
       };
   
+      // Handle RECONNECT state
+      wsRef.current.onopen = () => {
+        console.log("Voice WebSocket connected.");
+      };
+  
       // Send audio every 200ms
       // mediaRecorderRef.current.ondataavailable = (event) => {
       //   if (event.data && event.data.size > 0) {
@@ -329,12 +317,12 @@ const ChatPage = ({ token, username, onLogout }) => {
       //   }
       // };
 
-      mediaRecorderRef.current.ondataavailable = (event) => {
+      mediaRecorderRef.current.ondataavailable = async (event) => {
         if (wsRef.current?.readyState === WebSocket.OPEN) {
-          wsRef.current.send(event.data);   // <--- FIXED
+          const buffer = await event.data.arrayBuffer();   // convert blob → arraybuffer
+          wsRef.current.send(buffer);                  // send binary bytes
         }
       };
-
       
   
       mediaRecorderRef.current.start(200);

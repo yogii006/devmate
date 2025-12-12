@@ -1,36 +1,38 @@
+# voice_ws.py — FINAL UPDATED VERSION WITH WORKING TTS
+
 import json
 import base64
 import io
-import asyncio
 from fastapi import WebSocket, APIRouter
 from fastapi.websockets import WebSocketDisconnect
 from src.auth import decode_access_token
 from src.graph import sync_graph
+
 from openai import OpenAI
 client = OpenAI()
 
 router = APIRouter()
 
+# ---------------------------
+# AUTH FOR WEBSOCKET
+# ---------------------------
 async def get_user_from_ws(websocket: WebSocket):
     token = websocket.query_params.get("token")
     if not token:
         await websocket.close(code=4001)
         return None
+
     email = decode_access_token(token)
     if not email:
         await websocket.close(code=4002)
         return None
+
     return {"email": email}
 
-# ⭐ Render WebSocket Keepalive
-async def websocket_keepalive(websocket: WebSocket):
-    while True:
-        try:
-            await asyncio.sleep(10)
-            await websocket.send_json({"type": "ping"})
-        except:
-            break
 
+# ---------------------------
+# REALTIME VOICE WEBSOCKET
+# ---------------------------
 @router.websocket("/voice/ws")
 async def voice_chat(websocket: WebSocket):
     await websocket.accept()
@@ -41,25 +43,19 @@ async def voice_chat(websocket: WebSocket):
 
     print("🎤 User connected to voice WebSocket")
 
-    # ⭐ Start keepalive task
-    asyncio.create_task(websocket_keepalive(websocket))
-
     audio_chunks = []
 
     try:
         while True:
-            # ⭐ Safe receive to avoid proxy-triggered disconnects
-            try:
-                msg = await websocket.receive()
-            except Exception:
-                continue
+            msg = await websocket.receive()
 
-            # TEXT MESSAGE (end signal)
+            # ------------------------------------------
+            # END EVENT ("mouseup" or "touchend")
+            # ------------------------------------------
             if msg["type"] == "websocket.receive" and "text" in msg:
                 try:
                     data = json.loads(msg["text"])
-                    if data.get("event") == "start":
-                        continue
+
                     if data.get("event") == "end":
                         print("⏹ Received end signal")
 
@@ -67,9 +63,13 @@ async def voice_chat(websocket: WebSocket):
                             await websocket.send_json({"error": "No audio received"})
                             continue
 
+                        # Combine all binary audio chunks
                         raw_bytes = b"".join(audio_chunks)
                         audio_chunks = []
 
+                        # ------------------------------------------------------
+                        # STEP 1 — TRANSCRIBE WEBM AUDIO (forcing English)
+                        # ------------------------------------------------------
                         whisper = client.audio.transcriptions.create(
                             model="gpt-4o-transcribe",
                             file=("audio.webm", raw_bytes, "audio/webm"),
@@ -77,8 +77,14 @@ async def voice_chat(websocket: WebSocket):
                         )
                         transcript = whisper.text
 
-                        await websocket.send_json({"type": "transcript", "text": transcript})
+                        await websocket.send_json({
+                            "type": "transcript",
+                            "text": transcript
+                        })
 
+                        # ------------------------------------------------------
+                        # STEP 2 — SEND TRANSCRIPT TO LANGGRAPH AGENT
+                        # ------------------------------------------------------
                         result = await sync_graph.invoke({
                             "messages": [{"role": "user", "content": transcript}],
                             "user_id": user["email"]
@@ -91,30 +97,39 @@ async def voice_chat(websocket: WebSocket):
                             "text": ai_reply
                         })
 
+                        # ------------------------------------------------------
+                        # STEP 3 — CONVERT AI REPLY → SPEECH (TTS PATCH APPLIED)
+                        # ------------------------------------------------------
                         speech_response = client.audio.speech.create(
                             model="gpt-4o-mini-tts",
                             voice="alloy",
                             input=ai_reply
                         )
+
+                        # MUST call .read() because API returns streaming-like bytes
                         raw_audio = speech_response.read()
+
                         audio_base64 = base64.b64encode(raw_audio).decode()
 
                         await websocket.send_json({
                             "type": "assistant_audio",
                             "audio": audio_base64
                         })
+
                         continue
 
                 except json.JSONDecodeError:
-                    pass
+                    pass  # ignore non-JSON text messages
 
-            # BINARY AUDIO
+            # ------------------------------------------------------
+            # BINARY AUDIO CHUNKS FROM MediaRecorder
+            # ------------------------------------------------------
             if msg["type"] == "websocket.receive" and "bytes" in msg:
                 audio_chunks.append(msg["bytes"])
 
     except WebSocketDisconnect:
         print("❌ WebSocket disconnected")
+
     except Exception as e:
         print("WS ERROR:", e)
-    finally:
-        print("🔌 Connection fully closed")
+        await websocket.close()
