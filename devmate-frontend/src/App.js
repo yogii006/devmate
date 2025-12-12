@@ -298,8 +298,25 @@ const ChatPage = ({ token, username, onLogout }) => {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       mediaRecorderRef.current = new MediaRecorder(stream, { mimeType: "audio/webm" });
   
+      // Connect WS - build a ws/wss URL that works for local dev and deployed monolith
+      const makeWsUrl = (t) => {
+        try {
+          // If API_ROOT is empty (same-origin monolith) use current host
+          if (!API_ROOT) {
+            const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
+            return `${proto}://${window.location.host}/voice/ws?token=${t}`;
+          }
+          // If API_ROOT is set, convert http(s) to ws(s) and remove trailing slash
+          const root = API_ROOT.replace(/\/$/, '');
+          const wsProto = root.startsWith('https') ? 'wss' : 'ws';
+          const host = root.replace(/^https?:\/\//, '');
+          return `${wsProto}://${host}/voice/ws?token=${t}`;
+        } catch (e) {
+          return `ws://localhost:8000/voice/ws?token=${t}`;
+        }
+      };
       // Connect WS
-      wsRef.current = new WebSocket(`ws://localhost:8000/voice/ws?token=${token}`);
+      wsRef.current = new WebSocket(makeWsUrl(token));
   
       wsRef.current.onmessage = (event) => {
         const data = JSON.parse(event.data);
