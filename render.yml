@@ -1,0 +1,108 @@
+# Render manifest to deploy the monorepo as two services: backend (Docker Web Service) and frontend (Static Site)
+# IMPORTANT: Do NOT put secret values into this file. Create the secrets in the Render dashboard (or via CLI)
+# and Render will inject them into the backend service. Update branch/root names if you use a different branch.
+
+services:
+  - type: web
+    name: devmate-backend
+    env: docker
+    plan: free
+    branch: main
+    dockerfilePath: backend/Dockerfile
+    # For Docker services Render will run the image's default CMD. If you need a custom start command,
+    # set startCommand here.
+    envVars:
+      - key: DB_NAME
+        value: devmate_chat
+      - key: MODEL
+        value: gpt-4o-mini
+      # Sensitive values should come from Render secrets (see `secrets:` below)
+      - key: MONGO_URI
+        fromSecret: MONGO_URI
+      - key: SECRET_KEY
+        fromSecret: SECRET_KEY
+      - key: OPENAI_API_KEY
+        fromSecret: OPENAI_API_KEY
+      - key: SUPABASE_URL
+        fromSecret: SUPABASE_URL
+      - key: SUPABASE_KEY
+        fromSecret: SUPABASE_KEY
+      - key: SUPABASE_BUCKET
+        value: devmate
+      - key: DEEPGRAM_API_KEY
+        fromSecret: DEEPGRAM_API_KEY
+      - key: TAVILY_API_KEY
+        fromSecret: TAVILY_API_KEY
+      - key: WEATHERAPI_KEY
+        fromSecret: WEATHERAPI_KEY
+      - key: CARTESIA_API_KEY
+        fromSecret: CARTESIA_API_KEY
+      - key: DAILY_API_KEY
+        fromSecret: DAILY_API_KEY
+
+  - type: web
+    name: devmate-frontend
+    env: docker
+    plan: free
+    branch: main
+    dockerfilePath: devmate-frontend/Dockerfile
+    # Use the runtime-config approach: set REACT_APP_API_URL as an env var in Render (or leave empty for same-origin)
+    envVars:
+      - key: REACT_APP_API_URL
+        value: "https://<your-backend-public-url>"
+
+secrets:
+  # Create these secrets in the Render dashboard or via the render CLI and set their values there.
+  - name: MONGO_URI
+  - name: SECRET_KEY
+  - name: OPENAI_API_KEY
+  - name: SUPABASE_KEY
+  - name: DEEPGRAM_API_KEY
+  - name: TAVILY_API_KEY
+  - name: WEATHERAPI_KEY
+  - name: CARTESIA_API_KEY
+  - name: DAILY_API_KEY
+services:
+  - type: web
+    name: devmate-backend
+    env: docker
+    plan: free
+    branch: main
+    dockerfilePath: backend/Dockerfile
+    buildCommand: ""
+    startCommand: ""
+    envVars:
+      - key: MONGO_URI
+        value: "<PUT_YOUR_ATLAS_URI_HERE>"
+      - key: SECRET_KEY
+        value: "<PUT_SECRET_KEY_HERE>"
+      - key: OPENAI_API_KEY
+        value: "<PUT_OPENAI_KEY_HERE>"
+
+  - type: static
+    name: devmate-frontend
+    branch: main
+    root: devmate-frontend
+    plan: free
+    buildCommand: "npm ci && npm run build"
+    publishPath: build
+    envVars:
+      - key: REACT_APP_API_URL
+        value: "https://<devmate-backend>.onrender.com"
+
+# Optional: Single-container deployment (builds frontend and backend into one image)
+# To use this, uncomment the block below and deploy the service that uses the repo-root Dockerfile.
+#
+  - type: web
+    name: devmate-monolith
+    env: docker
+    plan: free
+    branch: main
+    dockerfilePath: ./Dockerfile
+    envVars:
+     - key: MONGO_URI
+       fromSecret: MONGO_URI
+     - key: SECRET_KEY
+       fromSecret: SECRET_KEY
+     - key: OPENAI_API_KEY
+       fromSecret: OPENAI_API_KEY
