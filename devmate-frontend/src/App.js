@@ -272,7 +272,9 @@ const ChatPage = ({ token, username, onLogout }) => {
       mediaRecorderRef.current = new MediaRecorder(stream, { mimeType: "audio/webm" });
   
       // Connect WS
-      wsRef.current = new WebSocket(`ws://localhost:8000/voice/ws?token=${token}`);
+      // wsRef.current = new WebSocket(`ws://localhost:8000/voice/ws?token=${token}`);
+      wsRef.current = new WebSocket(`wss://devmate-lxbp.onrender.com/voice/ws?token=${token}`);
+
   
       wsRef.current.onmessage = (event) => {
         const data = JSON.parse(event.data);
