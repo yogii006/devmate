@@ -1,13 +1,11 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import './App.css';
 
-const API_ROOT = "https://devmate-lxbp.onrender.com";
+const API_ROOT = "http://localhost:8000";
 
-// Logo Component
 const Logo = ({ width = 100, height = 100, gradientId = "" }) => (
   <svg viewBox="0 0 160 180" width={width} height={height} fill="none" xmlns="http://www.w3.org/2000/svg">
     <defs>
@@ -71,59 +69,29 @@ const Logo = ({ width = 100, height = 100, gradientId = "" }) => (
   </svg>
 );
 
-// Code Block Component with Copy Button and Syntax Highlighting
 const CodeBlock = ({ children, ...props }) => {
   const [copied, setCopied] = useState(false);
-
-  // Extract code content and language
   const codeElement = React.Children.toArray(children).find(
     child => React.isValidElement(child) && child.type === 'code'
   );
-  
   const className = codeElement?.props?.className || '';
   const match = /language-(\w+)/.exec(className || '');
   const language = match ? match[1] : '';
-  
-  // Extract code content
   let codeContent = '';
   if (codeElement) {
     const children = codeElement.props.children;
-    codeContent = typeof children === 'string' 
-      ? children 
-      : React.Children.toArray(children).join('');
+    codeContent = typeof children === 'string' ? children : React.Children.toArray(children).join('');
   }
-
   const handleCopy = async () => {
     if (!codeContent) return;
-
     try {
       await navigator.clipboard.writeText(codeContent);
       setCopied(true);
-      setTimeout(() => {
-        setCopied(false);
-      }, 5000);
+      setTimeout(() => setCopied(false), 5000);
     } catch (err) {
       console.error('Failed to copy code:', err);
-      // Fallback for older browsers
-      const textArea = document.createElement('textarea');
-      textArea.value = codeContent;
-      textArea.style.position = 'fixed';
-      textArea.style.opacity = '0';
-      document.body.appendChild(textArea);
-      textArea.select();
-      try {
-        document.execCommand('copy');
-        setCopied(true);
-        setTimeout(() => {
-          setCopied(false);
-        }, 5000);
-      } catch (fallbackErr) {
-        console.error('Fallback copy failed:', fallbackErr);
-      }
-      document.body.removeChild(textArea);
     }
   };
-
   return (
     <div className="code-block-wrapper">
       <div className="code-block-header">
@@ -133,48 +101,23 @@ const CodeBlock = ({ children, ...props }) => {
         </button>
       </div>
       {language ? (
-        <SyntaxHighlighter
-          language={language}
-          style={oneLight}
-          customStyle={{
-            margin: 0,
-            borderRadius: 0,
-            padding: '12px 16px',
-            background: '#ffffff',
-            fontSize: '14px',
-            lineHeight: '1.5',
-            color: '#383a42'
-          }}
-          PreTag="div"
-          codeTagProps={{
-            style: {
-              color: '#383a42',
-              fontFamily: "'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', monospace"
-            }
-          }}
-        >
+        <SyntaxHighlighter language={language} style={oneLight} customStyle={{ margin: 0, borderRadius: 0, padding: '12px 16px', background: '#ffffff', fontSize: '14px', lineHeight: '1.5', color: '#383a42' }} PreTag="div">
           {codeContent}
         </SyntaxHighlighter>
       ) : (
-        <pre {...props} style={{ margin: 0, borderRadius: 0, padding: '12px 16px', background: '#ffffff', color: '#000000' }}>
-          {children}
-        </pre>
+        <pre {...props} style={{ margin: 0, borderRadius: 0, padding: '12px 16px', background: '#ffffff', color: '#000000' }}>{children}</pre>
       )}
     </div>
   );
 };
 
-// Message Component
 const Message = ({ text, sender }) => {
   const [downloading, setDownloading] = useState(false);
-
   const linkMatch = text.match(/(https?:\/\/[^\s)]+\.supabase\.co[^\s)]+)/i);
-  
   if (linkMatch) {
     const url = linkMatch[1];
     const filename = url.split("/").pop().split("?")[0];
     let cleanText = text.replace(/\[Download[^\]]*\]\([^)]+\)/g, '').replace(url, '').trim();
-
     const handleDownload = async () => {
       setDownloading(true);
       try {
@@ -193,30 +136,16 @@ const Message = ({ text, sender }) => {
       }
       setDownloading(false);
     };
-
     return (
       <div className={`message ${sender === 'user' ? 'user-message' : 'ai-message'}`}>
         <div className="message-text">
           {sender === 'ai' ? (
-            <ReactMarkdown
-              components={{
-                pre: ({ children, ...props }) => {
-                  // Check if this is a code block (has code child with className)
-                  const codeChild = React.Children.toArray(children).find(
-                    child => React.isValidElement(child) && child.type === 'code'
-                  );
-                  if (codeChild && codeChild.props.className) {
-                    return <CodeBlock {...props}>{children}</CodeBlock>;
-                  }
-                  return <pre {...props}>{children}</pre>;
-                }
-              }}
-            >
-              {cleanText}
-            </ReactMarkdown>
-          ) : (
-            cleanText
-          )}
+            <ReactMarkdown components={{ pre: ({ children, ...props }) => {
+              const codeChild = React.Children.toArray(children).find(child => React.isValidElement(child) && child.type === 'code');
+              if (codeChild && codeChild.props.className) return <CodeBlock {...props}>{children}</CodeBlock>;
+              return <pre {...props}>{children}</pre>;
+            }}}>{cleanText}</ReactMarkdown>
+          ) : cleanText}
         </div>
         <button onClick={handleDownload} disabled={downloading} className="download-btn">
           {downloading ? 'Downloading...' : `📥 Download ${filename}`}
@@ -224,36 +153,21 @@ const Message = ({ text, sender }) => {
       </div>
     );
   }
-
   return (
     <div className={`message ${sender === 'user' ? 'user-message' : 'ai-message'}`}>
       <div className="message-text">
         {sender === 'ai' ? (
-          <ReactMarkdown
-            components={{
-              pre: ({ children, ...props }) => {
-                // Check if this is a code block (has code child with className)
-                const codeChild = React.Children.toArray(children).find(
-                  child => React.isValidElement(child) && child.type === 'code'
-                );
-                if (codeChild && codeChild.props.className) {
-                  return <CodeBlock {...props}>{children}</CodeBlock>;
-                }
-                return <pre {...props}>{children}</pre>;
-              }
-            }}
-          >
-            {text}
-          </ReactMarkdown>
-        ) : (
-          text
-        )}
+          <ReactMarkdown components={{ pre: ({ children, ...props }) => {
+            const codeChild = React.Children.toArray(children).find(child => React.isValidElement(child) && child.type === 'code');
+            if (codeChild && codeChild.props.className) return <CodeBlock {...props}>{children}</CodeBlock>;
+            return <pre {...props}>{children}</pre>;
+          }}}>{text}</ReactMarkdown>
+        ) : text}
       </div>
     </div>
   );
 };
 
-// Auth Page Component
 const AuthPage = ({ onLogin }) => {
   const [mode, setMode] = useState('login');
   const [loginEmail, setLoginEmail] = useState('');
@@ -267,26 +181,19 @@ const AuthPage = ({ onLogin }) => {
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoginInfo('');
-
     try {
       const res = await fetch(`${API_ROOT}/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: loginEmail, password: loginPassword })
       });
-
       const data = await res.json();
-
       if (res.ok && data.access_token) {
         localStorage.setItem("dev_token", data.access_token);
         localStorage.setItem("dev_user", data.username);
         onLogin(data.access_token, data.username);
       } else {
-        const errorMsg = typeof data.detail === 'string' 
-          ? data.detail 
-          : Array.isArray(data.detail) 
-            ? data.detail.map(err => err.msg || JSON.stringify(err)).join(', ')
-            : "Login failed";
+        const errorMsg = typeof data.detail === 'string' ? data.detail : Array.isArray(data.detail) ? data.detail.map(err => err.msg || JSON.stringify(err)).join(', ') : "Login failed";
         setLoginInfo(errorMsg);
       }
     } catch (error) {
@@ -297,28 +204,17 @@ const AuthPage = ({ onLogin }) => {
   const handleSignup = async (e) => {
     e.preventDefault();
     setSignupInfo('');
-
     try {
       const res = await fetch(`${API_ROOT}/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          username: signupUsername, 
-          email: signupEmail,
-          password: signupPassword 
-        })
+        body: JSON.stringify({ username: signupUsername, email: signupEmail, password: signupPassword })
       });
-
       const data = await res.json();
-
       if (res.ok) {
         setSignupInfo("Signup successful! Please Login.");
       } else {
-        const errorMsg = typeof data.detail === 'string' 
-          ? data.detail 
-          : Array.isArray(data.detail) 
-            ? data.detail.map(err => err.msg || JSON.stringify(err)).join(', ')
-            : "Signup failed";
+        const errorMsg = typeof data.detail === 'string' ? data.detail : Array.isArray(data.detail) ? data.detail.map(err => err.msg || JSON.stringify(err)).join(', ') : "Signup failed";
         setSignupInfo(errorMsg);
       }
     } catch (error) {
@@ -330,83 +226,31 @@ const AuthPage = ({ onLogin }) => {
     <div className="auth-container">
       <Logo width={180} height={180} gradientId="Auth" />
       <h1 className="auth-title">DevMate Auth</h1>
-
       <div className="auth-tabs">
-        <button className={`tab-button ${mode === 'login' ? 'active' : ''}`} onClick={() => setMode('login')}>
-          Login
-        </button>
-        <button className={`tab-button ${mode === 'signup' ? 'active' : ''}`} onClick={() => setMode('signup')}>
-          Signup
-        </button>
+        <button className={`tab-button ${mode === 'login' ? 'active' : ''}`} onClick={() => setMode('login')}>Login</button>
+        <button className={`tab-button ${mode === 'signup' ? 'active' : ''}`} onClick={() => setMode('signup')}>Signup</button>
       </div>
-
       {mode === 'login' ? (
         <div className="auth-form">
-          <input
-            type="email"
-            placeholder="Email"
-            value={loginEmail}
-            onChange={(e) => setLoginEmail(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleLogin(e)}
-            className="auth-input"
-            required
-          />
-          <input
-            type="password"
-            placeholder="Password"
-            value={loginPassword}
-            onChange={(e) => setLoginPassword(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleLogin(e)}
-            className="auth-input"
-            required
-          />
+          <input type="email" placeholder="Email" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleLogin(e)} className="auth-input" required />
+          <input type="password" placeholder="Password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleLogin(e)} className="auth-input" required />
           <button onClick={handleLogin} className="auth-btn">Login</button>
           {loginInfo && <p className="auth-info error">{loginInfo}</p>}
         </div>
       ) : (
         <div className="auth-form">
-          <input
-            type="text"
-            placeholder="Username"
-            value={signupUsername}
-            onChange={(e) => setSignupUsername(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSignup(e)}
-            className="auth-input"
-            required
-          />
-          <input
-            type="email"
-            placeholder="Email"
-            value={signupEmail}
-            onChange={(e) => setSignupEmail(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSignup(e)}
-            className="auth-input"
-            required
-          />
-          <input
-            type="password"
-            placeholder="Password"
-            value={signupPassword}
-            onChange={(e) => setSignupPassword(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSignup(e)}
-            className="auth-input"
-            required
-          />
+          <input type="text" placeholder="Username" value={signupUsername} onChange={(e) => setSignupUsername(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleSignup(e)} className="auth-input" required />
+          <input type="email" placeholder="Email" value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleSignup(e)} className="auth-input" required />
+          <input type="password" placeholder="Password" value={signupPassword} onChange={(e) => setSignupPassword(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleSignup(e)} className="auth-input" required />
           <button onClick={handleSignup} className="auth-btn">Signup</button>
-          {signupInfo && (
-            <p className={`auth-info ${signupInfo.includes('successful') ? 'success' : 'error'}`}>
-              {signupInfo}
-            </p>
-          )}
+          {signupInfo && <p className={`auth-info ${signupInfo.includes('successful') ? 'success' : 'error'}`}>{signupInfo}</p>}
         </div>
       )}
-
       <p className="auth-note">Your session token will be securely saved in your browser.</p>
     </div>
   );
 };
 
-// Chat Page Component
 const ChatPage = ({ token, username, onLogout }) => {
   const [messages, setMessages] = useState([]);
   const [userInput, setUserInput] = useState('');
@@ -414,23 +258,89 @@ const ChatPage = ({ token, username, onLogout }) => {
   const [currentConversationId, setCurrentConversationId] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [loading, setLoading] = useState(false);
-  const chatRef = useRef(null);
+  const wsRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const [isRecording, setIsRecording] = useState(false);
 
-  // NEW: textarea ref + max rows
+  const startRecording = async () => {
+    try {
+      setIsRecording(true);
+  
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorderRef.current = new MediaRecorder(stream, { mimeType: "audio/webm" });
+  
+      // Connect WS
+      wsRef.current = new WebSocket(`ws://localhost:8000/voice/ws?token=${token}`);
+  
+      wsRef.current.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+  
+        if (data.type === "transcript") {
+          setMessages(prev => [...prev, { role: "user", content: data.text }]);
+        }
+  
+        if (data.type === "assistant_text") {
+          setMessages(prev => [...prev, { role: "assistant", content: data.text }]);
+        }
+  
+        if (data.type === "assistant_audio") {
+          console.log("Received TTS audio base64:", data.audio);
+          // play TTS if needed
+        }
+      };
+  
+      // Handle RECONNECT state
+      wsRef.current.onopen = () => {
+        console.log("Voice WebSocket connected.");
+      };
+  
+      // Send audio every 200ms
+      // mediaRecorderRef.current.ondataavailable = (event) => {
+      //   if (event.data && event.data.size > 0) {
+      //     event.data.arrayBuffer().then((buffer) => {
+      //       if (wsRef.current?.readyState === WebSocket.OPEN) {
+      //         wsRef.current.send(buffer);  // <<--- IMPORTANT: SEND BINARY
+      //       }
+      //     });
+      //   }
+      // };
+
+      mediaRecorderRef.current.ondataavailable = async (event) => {
+        if (wsRef.current?.readyState === WebSocket.OPEN) {
+          const buffer = await event.data.arrayBuffer();   // convert blob → arraybuffer
+          wsRef.current.send(buffer);                  // send binary bytes
+        }
+      };
+      
+  
+      mediaRecorderRef.current.start(200);
+    } catch (err) {
+      console.error("Mic error:", err);
+      setIsRecording(false);
+    }
+  };
+  const stopRecording = () => {
+    setIsRecording(false);
+    mediaRecorderRef.current?.stop();
+  
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ event: "end" }));
+    }
+  };
+  
+
+  const chatRef = useRef(null);
   const textareaRef = useRef(null);
   const MAX_ROWS = 10;
 
   useEffect(() => {
-    if (chatRef.current) {
-      chatRef.current.scrollTop = chatRef.current.scrollHeight;
-    }
+    if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
   }, [messages]);
 
   const fetchConversations = async () => {
     try {
-      const res = await fetch(`${API_ROOT}/conversations`, {
-        headers: { "Authorization": `Bearer ${token}` }
-      });
+      const res = await fetch(`${API_ROOT}/conversations`, { headers: { "Authorization": `Bearer ${token}` } });
       if (res.ok) {
         const data = await res.json();
         setConversations(data.conversations || []);
@@ -442,70 +352,44 @@ const ChatPage = ({ token, username, onLogout }) => {
 
   useEffect(() => {
     fetchConversations();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
     const formData = new FormData();
     formData.append("file", file);
-
-    const uploadNotice = {
-      role: "assistant",
-      content: `⏳ Uploading **${file.name}**...`
-    };
+    const uploadNotice = { role: "assistant", content: `⏳ Uploading **${file.name}**...` };
     setMessages(prev => [...prev, uploadNotice]);
-
     try {
-      const res = await fetch(`${API_ROOT}/upload`, {
-        method: "POST",
-        headers: { "Authorization": `Bearer ${token}` },
-        body: formData
-      });
-
+      const res = await fetch(`${API_ROOT}/upload`, { method: "POST", headers: { "Authorization": `Bearer ${token}` }, body: formData });
       const data = await res.json();
-
       if (res.ok) {
-        const successMsg = {
-          role: "assistant",
-          content: data.message || `📄 File **${file.name}** uploaded successfully.\nYou can now ask me anything from this file.`
-        };
+        const successMsg = { role: "assistant", content: data.message || `📄 File **${file.name}** uploaded successfully.\nYou can now ask me anything from this file.` };
         setMessages(prev => [...prev.slice(0, -1), successMsg]);
       } else {
-        const failMsg = {
-          role: "assistant",
-          content: `❌ Upload failed: ${data.detail || "Unknown error"}`
-        };
+        const failMsg = { role: "assistant", content: `❌ Upload failed: ${data.detail || "Unknown error"}` };
         setMessages(prev => [...prev.slice(0, -1), failMsg]);
       }
     } catch (err) {
       console.error(err);
-      const errMsg = {
-        role: "assistant",
-        content: "❌ Error uploading file."
-      };
+      const errMsg = { role: "assistant", content: "❌ Error uploading file." };
       setMessages(prev => [...prev.slice(0, -1), errMsg]);
     }
   };
 
-  // NEW: handle textarea change (auto-grow)
   const handleInputChange = (e) => {
     const value = e.target.value;
     setUserInput(value);
-
     const textarea = textareaRef.current;
     if (!textarea) return;
-
     textarea.style.height = 'auto';
-    const lineHeight = 24; // approx line height in px
+    const lineHeight = 24;
     const maxHeight = MAX_ROWS * lineHeight;
     const newHeight = Math.min(textarea.scrollHeight, maxHeight);
     textarea.style.height = `${newHeight}px`;
   };
 
-  // NEW: Enter sends, Shift+Enter = newline
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -516,48 +400,27 @@ const ChatPage = ({ token, username, onLogout }) => {
   const sendMessage = async () => {
     const val = userInput;
     if (!val) return;
-
     const userMsg = { role: 'user', content: val };
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
     setUserInput('');
-
-    // reset textarea height
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-    }
-
+    if (textareaRef.current) textareaRef.current.style.height = 'auto';
     setLoading(true);
-
     try {
       const payload = { messages: newMessages };
-      if (currentConversationId) {
-        payload.conversation_id = currentConversationId;
-      }
-
+      if (currentConversationId) payload.conversation_id = currentConversationId;
       const res = await fetch(`${API_ROOT}/run`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify(payload)
       });
-
       const data = await res.json();
-      
       if (res.ok) {
         setMessages(data.messages || []);
-        if (data.conversation_id && !currentConversationId) {
-          setCurrentConversationId(data.conversation_id);
-        }
+        if (data.conversation_id && !currentConversationId) setCurrentConversationId(data.conversation_id);
         fetchConversations();
       } else {
-        const errorMsg = typeof data.detail === 'string' 
-          ? data.detail 
-          : Array.isArray(data.detail) 
-            ? data.detail.map(err => err.msg || JSON.stringify(err)).join(', ')
-            : "Error from server";
+        const errorMsg = typeof data.detail === 'string' ? data.detail : Array.isArray(data.detail) ? data.detail.map(err => err.msg || JSON.stringify(err)).join(', ') : "Error from server";
         const errorMsgObj = { role: 'assistant', content: `Error: ${errorMsg}` };
         setMessages([...newMessages, errorMsgObj]);
       }
@@ -583,10 +446,8 @@ const ChatPage = ({ token, username, onLogout }) => {
   const getConversationPreview = (conv) => {
     const msgs = conv.messages || [];
     if (msgs.length === 0) return { userMsg: 'Empty conversation', aiMsg: '' };
-    
     const userMsg = msgs.find(m => m.role === 'user')?.content || 'No user message';
     const aiMsg = msgs.find(m => m.role === 'assistant')?.content || 'No AI response';
-    
     return {
       userMsg: userMsg.length > 40 ? userMsg.substring(0, 40) + '...' : userMsg,
       aiMsg: aiMsg.length > 40 ? aiMsg.substring(0, 40) + '...' : aiMsg
@@ -594,25 +455,18 @@ const ChatPage = ({ token, username, onLogout }) => {
   };
 
   const handleDeleteConversation = async (conversationId, e) => {
-    e.stopPropagation(); // Prevent triggering the conversation load
-    
-    if (!window.confirm('Are you sure you want to delete this conversation?')) {
-      return;
-    }
-
+    e.stopPropagation();
+    if (!window.confirm('Are you sure you want to delete this conversation?')) return;
     try {
       const res = await fetch(`${API_ROOT}/conversations/${conversationId}`, {
         method: "DELETE",
         headers: { "Authorization": `Bearer ${token}` }
       });
-
       if (res.ok) {
-        // If deleted conversation was the current one, clear it
         if (currentConversationId === conversationId) {
           setMessages([]);
           setCurrentConversationId(null);
         }
-        // Refresh conversations list
         fetchConversations();
       } else {
         const data = await res.json();
@@ -626,24 +480,17 @@ const ChatPage = ({ token, username, onLogout }) => {
 
   return (
     <div className="app-container">
-      {/* Sidebar */}
       <div className={`sidebar ${!sidebarOpen ? 'sidebar-closed' : ''}`}>
         <div className="sidebar-header">
           <div className="logo-container">
             <Logo width={100} height={100} gradientId="Sidebar" />
             <h2 className="sidebar-title">DevMate</h2>
           </div>
-          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="toggle-btn">
-            {sidebarOpen ? '◀' : '▶'}
-          </button>
+          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="toggle-btn">{sidebarOpen ? '◀' : '▶'}</button>
         </div>
-        
         {sidebarOpen && (
           <>
-            <button onClick={startNewChat} className="new-chat-btn">
-              ➕ New Chat
-            </button>
-            
+            <button onClick={startNewChat} className="new-chat-btn">➕ New Chat</button>
             <div className="conversations-list">
               <h3 className="conversations-header">History</h3>
               {conversations.length === 0 ? (
@@ -653,41 +500,19 @@ const ChatPage = ({ token, username, onLogout }) => {
                   const preview = getConversationPreview(conv);
                   const userMsgCount = conv.messages?.filter(m => m.role === 'user').length || 0;
                   const isActive = currentConversationId === conv._id;
-                  
                   return (
-                    <div 
-                      key={conv._id} 
-                      className={`conversation-card ${isActive ? 'active' : ''}`}
-                      onClick={() => loadConversation(conv)}
-                    >
+                    <div key={conv._id} className={`conversation-card ${isActive ? 'active' : ''}`} onClick={() => loadConversation(conv)}>
                       <div className="conversation-header-row">
                         <div className="conversation-date">
-                          {new Date(conv.updated_at || conv.created_at).toLocaleDateString('en-US', { 
-                            month: 'short', 
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
+                          {new Date(conv.updated_at || conv.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                         </div>
-                        <button
-                          className="delete-conversation-btn"
-                          onClick={(e) => handleDeleteConversation(conv._id, e)}
-                          title="Delete conversation"
-                        >
-                          🗑️
-                        </button>
+                        <button className="delete-conversation-btn" onClick={(e) => handleDeleteConversation(conv._id, e)} title="Delete conversation">🗑️</button>
                       </div>
                       <div className="conversation-content">
-                        <div className="conversation-user">
-                          <span className="role-label">You:</span> {preview.userMsg}
-                        </div>
-                        <div className="conversation-ai">
-                          <span className="role-label">AI:</span> {preview.aiMsg}
-                        </div>
+                        <div className="conversation-user"><span className="role-label">You:</span> {preview.userMsg}</div>
+                        <div className="conversation-ai"><span className="role-label">AI:</span> {preview.aiMsg}</div>
                       </div>
-                      <div className="conversation-meta">
-                        {conv.messages?.length || 0} msgs • {userMsgCount} from you
-                      </div>
+                      <div className="conversation-meta">{conv.messages?.length || 0} msgs • {userMsgCount} from you</div>
                     </div>
                   );
                 })
@@ -696,25 +521,16 @@ const ChatPage = ({ token, username, onLogout }) => {
           </>
         )}
       </div>
-
-      {/* Main Chat Area */}
       <div className="main-content">
         <div className="top-bar">
-          {!sidebarOpen && (
-            <button onClick={() => setSidebarOpen(true)} className="open-sidebar-btn">
-              ☰
-            </button>
-          )}
+          {!sidebarOpen && <button onClick={() => setSidebarOpen(true)} className="open-sidebar-btn">☰</button>}
           <div className="user-info">
             <span className="username">{username}</span>
             <button onClick={onLogout} className="logout-btn">Logout</button>
           </div>
         </div>
-
         <div ref={chatRef} className="chat-container">
-          <div className="watermark-container">
-            <Logo width={500} height={500} gradientId="Watermark" />
-          </div>
+          <div className="watermark-container"><Logo width={500} height={500} gradientId="Watermark" /></div>
           {messages.length === 0 ? (
             <div className="empty-state">
               <h2>Welcome to DevMate! 👋</h2>
@@ -722,58 +538,27 @@ const ChatPage = ({ token, username, onLogout }) => {
               <p className="hint">💡 You can also upload files (PDF, images, text) using the 📎 button</p>
             </div>
           ) : (
-            messages.map((msg, idx) => (
-              <Message key={idx} text={msg.content} sender={msg.role === 'user' ? 'user' : 'ai'} />
-            ))
+            messages.map((msg, idx) => <Message key={idx} text={msg.content} sender={msg.role === 'user' ? 'user' : 'ai'} />)
           )}
-          {loading && (
-            <div className="loading-indicator">AI is thinking...</div>
-          )}
+          {loading && <div className="loading-indicator">AI is thinking...</div>}
         </div>
-
-        {/* NEW ChatGPT-style input area */}
         <div className="input-container">
-          <textarea
-            ref={textareaRef}
-            className="chat-textarea"
-            placeholder="Type a message..."
-            rows={1}
-            value={userInput}
-            onKeyDown={handleKeyDown}
-            onChange={handleInputChange}
-            disabled={loading}
-          ></textarea>
-
+          <textarea ref={textareaRef} className="chat-textarea" placeholder="Type a message..." rows={1} value={userInput} onKeyDown={handleKeyDown} onChange={handleInputChange} disabled={loading}></textarea>
           <div className="input-actions">
-            <label className="upload-btn">
-              📎
-              <input 
-                type="file" 
-                style={{ display: "none" }} 
-                onChange={handleFileUpload}
-              />
-            </label>
-
-            <button 
-              className="send-icon" 
-              onClick={sendMessage} 
-              disabled={loading}
-            >
-              ➤
-            </button>
+            <label className="upload-btn">📎<input type="file" style={{ display: "none" }} onChange={handleFileUpload} /></label>
+            <button className="send-icon" onClick={sendMessage} disabled={loading}>➤</button>
           </div>
+          <button className={`mic-btn ${isRecording ? 'mic-recording' : 'mic-idle'}`} onMouseDown={startRecording} onMouseUp={stopRecording} onTouchStart={startRecording} onTouchEnd={stopRecording}>🎤</button>
         </div>
       </div>
     </div>
   );
 };
 
-// Main App Component
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [token, setToken] = useState('');
   const [username, setUsername] = useState('');
-
   useEffect(() => {
     const savedToken = localStorage.getItem('dev_token');
     const savedUser = localStorage.getItem('dev_user');
@@ -783,13 +568,11 @@ export default function App() {
       setIsAuthenticated(true);
     }
   }, []);
-
   const handleLogin = (newToken, newUsername) => {
     setToken(newToken);
     setUsername(newUsername);
     setIsAuthenticated(true);
   };
-
   const handleLogout = () => {
     localStorage.removeItem('dev_token');
     localStorage.removeItem('dev_user');
@@ -797,15 +580,9 @@ export default function App() {
     setUsername('');
     setIsAuthenticated(false);
   };
-
   return (
     <div className="app">
-      {isAuthenticated ? (
-        <ChatPage token={token} username={username} onLogout={handleLogout} />
-      ) : (
-        <AuthPage onLogin={handleLogin} />
-      )}
+      {isAuthenticated ? <ChatPage token={token} username={username} onLogout={handleLogout} /> : <AuthPage onLogin={handleLogin} />}
     </div>
   );
 }
-

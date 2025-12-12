@@ -12,6 +12,57 @@
     animation: App-logo-spin infinite 20s linear;
   }
 }
+/* Mic button base styles */
+.mic-btn {
+  position: absolute;
+  bottom: 6px;
+  right: 80px;
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+}
+
+/* Idle state (not recording) */
+.mic-btn.mic-idle {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.mic-btn.mic-idle:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+}
+
+/* Recording state (active) */
+.mic-btn.mic-recording {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 4px 12px rgba(245, 87, 108, 0.4);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(245, 87, 108, 0.6);
+  }
+}
+
+.mic-btn:active {
+  transform: scale(0.95);
+}
+
+.mic-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 .App-header {
   background-color: #282c34;
