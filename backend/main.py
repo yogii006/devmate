@@ -33,7 +33,9 @@ app.add_middleware(
 
 app.include_router(voice_router)
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
-
+@app.get("/")
+def root():
+    return {"status": "ok", "message": "DevMate backend is running"}
 # ---------------------------
 # Startup Event - Create DB Indexes
 # ---------------------------
