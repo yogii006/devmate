@@ -2,21 +2,27 @@ from fastapi import FastAPI, HTTPException, Depends, Body, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel, EmailStr
-from auth import hash_password, verify_password, create_access_token, decode_access_token
+from src.auth import hash_password, verify_password, create_access_token, decode_access_token
 from bson import ObjectId
 import json
 import base64
 
 # Centralized DB client
-from db import users_collection, sessions_collection, conversations_collection, create_indexes
+from src.db import users_collection, sessions_collection, conversations_collection, create_indexes
 from src.graph import sync_graph  # your LangGraph instance
 from datetime import datetime
+
+
+from src.voice_ws import router as voice_router
+
+
+
 
 # ---------------------------
 # FastAPI setup
 # ---------------------------
 app = FastAPI()
-
+app.include_router(voice_router)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -25,6 +31,7 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
+app.include_router(voice_router)
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 # ---------------------------

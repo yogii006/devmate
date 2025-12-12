@@ -7,7 +7,7 @@ import sys
 # Add backend to path so we can import upload_helper
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
-from upload_helper import upload_to_supabase
+from src.upload_helper import upload_to_supabase
 
 
 @tool

@@ -62,3 +62,29 @@ ntplib
 PyPDF2>=3.0.0
 Pillow>=10.0.0
 pytesseract>=0.3.10
+
+fastapi
+uvicorn[standard]
+httpx
+python-dotenv
+pydantic
+motor
+langgraph
+langchain-core
+# STT/TTS clients are via httpx; if you use official SDKs:
+deepgram-sdk  # optional, if you prefer official SDK
+# For audio handling if needed:
+pydub
+
+fastapi
+uvicorn[standard]
+python-dotenv
+pydub
+soundfile
+openai
+pyttsx3
+pymongo[srv]
+motor
+python-multipart
+langchain-core>=0.3.13
+langgraph>=0.2.26

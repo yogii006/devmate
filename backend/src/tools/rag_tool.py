@@ -11,7 +11,7 @@ from typing import Optional, List, Dict, Any
 from datetime import datetime
 from langchain_core.tools import tool
 from langchain_openai import ChatOpenAI
-from db import rag_documents_collection  # Import from centralized db
+from src.db import rag_documents_collection  # Import from centralized db
 import PyPDF2
 from PIL import Image
 import pytesseract
