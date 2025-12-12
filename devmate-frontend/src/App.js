@@ -329,12 +329,12 @@ const ChatPage = ({ token, username, onLogout }) => {
       //   }
       // };
 
-      mediaRecorderRef.current.ondataavailable = async (event) => {
+      mediaRecorderRef.current.ondataavailable = (event) => {
         if (wsRef.current?.readyState === WebSocket.OPEN) {
-          const buffer = await event.data.arrayBuffer();   // convert blob → arraybuffer
-          wsRef.current.send(buffer);                  // send binary bytes
+          wsRef.current.send(event.data);   // <--- FIXED
         }
       };
+
       
   
       mediaRecorderRef.current.start(200);
