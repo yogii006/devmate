@@ -1,0 +1,21 @@
+pipecat-ai==0.0.97
+fastapi
+uvicorn[standard]
+openai>=1.59.0
+install pipecat-ai[cartesia]
+numpy
+soundfile
+sounddevice
+
+aiohttp
+websockets
+
+python-dotenv
+requests
+pydantic
+aiortc
+av
+motor
+onnxruntime
+transformers
+loguru
